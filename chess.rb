@@ -82,6 +82,7 @@ end
 class Board
   attr_reader :board
   def initialize
+    @unicode = {"bRk" => "\u265c", "bKt" => "\u265e", "bBp" => "\u265d", "bQn" => "\u265b", "bKg" => "\u265a", "bPn" => "\u265f", "wRk" => "\u2656", "wKt" => "\u2658", "wBp" => "\u2657", "wQn" => "\u2655", "wKg" => "\u2654", "wPn" => "\u2659", }
     @board = []
     (0..7).each { @board.push(Array.new(8, nil))}
 
@@ -342,21 +343,55 @@ class Board
     true
   end
 
+  def promote_pawn(at_pos)
+    display_board
+    x = at_pos[0].to_i
+    y = at_pos[1].to_i
+    puts "Choose which piece do you want to promote the pawn to:"
+    puts "q - Queen"
+    puts "r - Rook"
+    puts "k - Knight"
+    puts "b - Bishop"
+    choice = gets.chomp.downcase
+    while ((choice.length != 1) || !(choice.match /q|r|k|b/))
+      puts "Invalid choice. Try again."
+      choice = gets.chomp.downcase
+    end
+    y == 7 ? color = "black" : color = "white"
+    case choice
+      when "q"
+        board[x][y] = Queen.new(color, x, y)
+      when "r"
+        board[x][y] = Rook.new(color, x, y)
+      when "k"
+        board[x][y] = Knight.new(color, x, y)
+      when "b"
+        board[x][y] = Bishop.new(color, x, y)
+    end
+  end
+
   def get_piece_code(piece)
     return piece.color[0] + "Pn" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
     return piece.color[0] + piece.class.to_s[0] + piece.class.to_s[-1]
   end
 
   def display_board
-    puts "\n       0     1     2     3     4     5     6     7 "
-    puts "    -------------------------------------------------"
+    puts "\n    x  0     1     2     3     4     5     6     7 "
+    puts " y  -------------------------------------------------"
     (0..7).each do |c_index|  
+      
+      print "    |"
+      (0..7).each do |row|
+          @board[row][c_index].nil? ? print("    "): print("  " + @unicode[get_piece_code(@board[row][c_index])] + " ")
+          print " |"
+      end
+      puts #"\n"
       print " #{c_index}  |"
       (0..7).each do |row|
           @board[row][c_index].nil? ? print("    "): print(" " + get_piece_code(@board[row][c_index]))
           print " |"
       end
-    puts "\n    |-----|-----|-----|-----|-----|-----|-----|-----|" unless c_index == 7
+      puts "\n    |-----|-----|-----|-----|-----|-----|-----|-----|" unless c_index == 7
     end
     puts "\n    -------------------------------------------------"
   end
@@ -409,12 +444,14 @@ class Game
       if piece.possible_moves.include? ([coord_to[0].to_i, coord_to[1].to_i])    
         piece_at_dest = game_board.board[coord_to[0].to_i][coord_to[1].to_i]
         game_board.make_move(coord_from, coord_to)
+        
         opponent = (@player1 == player) ? @player2 : @player1
         if game_board.checked?(opponent)
           puts "You can't make that move. You'll be in check."
           game_board.make_move(coord_to, coord_from, piece_at_dest)
           next
         end
+        game_board.promote_pawn(coord_to) if (((piece.class == WhitePawn) || (piece.class == BlackPawn)) && ((coord_to[1] == "0") || (coord_to[1] == "7")))
         if game_board.checked?(player)
           if game_board.check_mate?(player)
             game_board.display_board
