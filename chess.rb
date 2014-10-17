@@ -14,8 +14,6 @@ class Piece
     @position_x = position_x
     @position_y = position_y
   end
-
- 
 end
 
 class BlackPawn < Piece
@@ -27,7 +25,6 @@ class BlackPawn < Piece
   end
 end
 
-
 class WhitePawn < Piece
   attr_accessor :hypo_moves, :possible_moves
   def initialize(color, x, y)
@@ -36,7 +33,6 @@ class WhitePawn < Piece
     @possible_moves = @hypo_moves
   end
 end
-
 
 class Rook < Piece
   attr_accessor :possible_moves
@@ -149,30 +145,25 @@ class Board
     return moves
   end
 
-  def find_possible_moves_black_pawn(piece)
+  def get_list_of_moves_for_pawns(piece)
     result = []
-    piece.hypo_moves = [[0, 1], [1, 1], [-1, 1]] if piece.position_y != 1
-    
     piece.hypo_moves.each do |hm|
       x = piece.position_x + hm[0]
       y = piece.position_y + hm[1]
       result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && (board[x][y] == nil) && (hm[0] == 0))
       result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && (board[x][y] != nil) && (board[x][y].color != piece.color) && (hm[0] != 0))
     end
-    piece.possible_moves = result
+    result
+  end
+
+  def find_possible_moves_black_pawn(piece)
+    piece.hypo_moves = [[0, 1], [1, 1], [-1, 1]] if piece.position_y != 1
+    piece.possible_moves = get_list_of_moves_for_pawns(piece)
   end
 
   def find_possible_moves_white_pawn(piece)
-    result = []
     piece.hypo_moves = [[0, -1], [1, -1], [-1, -1]] if piece.position_y != 6
-    
-    piece.hypo_moves.each do |hm|
-      x = piece.position_x + hm[0]
-      y = piece.position_y + hm[1]
-      result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && (board[x][y] == nil) && (hm[0] == 0))
-      result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && (board[x][y] != nil) && (board[x][y].color != piece.color) && (hm[0] != 0))
-    end
-    piece.possible_moves = result
+    piece.possible_moves = get_list_of_moves_for_pawns(piece)
   end
 
   def find_possible_moves_rook(piece)
@@ -259,6 +250,14 @@ class Board
     return false
   end
 
+  def make_move(from, to, piece_to_restore = nil)
+    piece_to_move = board[from[0].to_i][from[1].to_i]
+    piece_to_move.position_x = to[0].to_i
+    piece_to_move.position_y = to[1].to_i
+    board[to[0].to_i][to[1].to_i] = piece_to_move
+    board[from[0].to_i][from[1].to_i] = piece_to_restore
+  end
+
   def check_mate?(player)
     #for each of the opponent pieces
       #make all possible moves
@@ -270,19 +269,12 @@ class Board
         end
         poss_moves = find_possible_moves(board[x][y])
         poss_moves.each do |mov|
-          saved_move = {}
           coord_to = mov
           coord_from = [x, y]
-          saved_move[:piece_at_dest] = board[coord_to[0].to_i][coord_to[1].to_i]
-          board[coord_to[0].to_i][coord_to[1].to_i] = board[coord_from[0].to_i][coord_from[1].to_i]
-          board[coord_to[0].to_i][coord_to[1].to_i].position_x = coord_to[0].to_i
-          board[coord_to[0].to_i][coord_to[1].to_i].position_y = coord_to[1].to_i
-          board[coord_from[0].to_i][coord_from[1].to_i] = nil
-          temp = checked?(player) 
-          board[coord_from[0].to_i][coord_from[1].to_i] = board[coord_to[0].to_i][coord_to[1].to_i]
-          board[coord_from[0].to_i][coord_from[1].to_i].position_x = coord_from[0].to_i
-          board[coord_from[0].to_i][coord_from[1].to_i].position_y = coord_from[1].to_i
-          board[coord_to[0].to_i][coord_to[1].to_i] = saved_move[:piece_at_dest]
+          piece_at_dest = board[coord_to[0].to_i][coord_to[1].to_i]
+          make_move(coord_from, coord_to)
+          temp = checked?(player)
+          make_move(coord_to, coord_from, piece_at_dest)
           return false if !temp
         end
       end
@@ -309,7 +301,6 @@ class Board
     puts "\n    -------------------------------------------------"
   end
 
-
 end
 
 class Game
@@ -321,7 +312,7 @@ class Game
   def get_xy
     xy = gets.chomp
     while ((xy.length != 2) || !(xy.match /[0-7][0-7]/))
-      puts "Invalid coordinates. Try again"
+      puts "Invalid coordinates. Try again."
       xy = gets.chomp
     end
     xy
@@ -329,9 +320,9 @@ class Game
 
   def player_turn(player)
     
-    puts "\n#{player.order_player} '#{player.name}' turn"
+    puts "\n#{player.order_player} '#{player.name}', #{player.color}\'s turn"
     while true
-      puts "choose the coordinates of the piece to move (xy)"
+      puts "Choose the coordinates of the piece to move (xy)"
       xy_origin = get_xy
       coord_from = xy_origin.split('')
       puts coord_from.inspect
@@ -344,23 +335,16 @@ class Game
       end 
       piece = game_board.board[coord_from[0].to_i][coord_from[1].to_i]
       game_board.find_possible_moves(piece)
-      puts "choose the coordinates of the place to move the piece to (xy)"
+      puts "Choose the coordinates of the place to move the piece to (xy)"
       xy_dest = get_xy
       coord_to = xy_dest.split('')
-      if piece.possible_moves.include? ([coord_to[0].to_i, coord_to[1].to_i])
-        saved_move = {}
-        saved_move[:piece_at_dest] = game_board.board[coord_to[0].to_i][coord_to[1].to_i]
-        game_board.board[coord_to[0].to_i][coord_to[1].to_i] = game_board.board[coord_from[0].to_i][coord_from[1].to_i]
-        game_board.board[coord_to[0].to_i][coord_to[1].to_i].position_x = coord_to[0].to_i
-        game_board.board[coord_to[0].to_i][coord_to[1].to_i].position_y = coord_to[1].to_i
-        game_board.board[coord_from[0].to_i][coord_from[1].to_i] = nil
+      if piece.possible_moves.include? ([coord_to[0].to_i, coord_to[1].to_i])    
+        piece_at_dest = game_board.board[coord_to[0].to_i][coord_to[1].to_i]
+        game_board.make_move(coord_from, coord_to)
         opponent = (@player1 == player) ? @player2 : @player1
         if game_board.checked?(opponent)
           puts "You can't make that move. You'll be in check."
-          game_board.board[coord_from[0].to_i][coord_from[1].to_i] = game_board.board[coord_to[0].to_i][coord_to[1].to_i]
-          game_board.board[coord_from[0].to_i][coord_from[1].to_i].position_x = coord_from[0].to_i
-          game_board.board[coord_from[0].to_i][coord_from[1].to_i].position_y = coord_from[1].to_i
-          game_board.board[coord_to[0].to_i][coord_to[1].to_i] = saved_move[:piece_at_dest]
+          game_board.make_move(coord_to, coord_from, piece_at_dest)
           next
         end
         if game_board.checked?(player)
