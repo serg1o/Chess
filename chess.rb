@@ -1,9 +1,12 @@
 class Player
-  attr_accessor :name, :color, :order_player
-  def initialize(name, color, order)
-    @name = name
+  attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved
+  def initialize(color, order)
     @order_player = order #player1, player2 etc
     @color = color
+    #useful when checking if encastling is possible
+    @queen_rook_moved = false
+    @king_rook_moved = false
+    @king_moved = false
   end
 end
 
@@ -282,6 +285,63 @@ class Board
     return true
   end
 
+  def checked_encastle?(player, position)
+    (0..7).each do |x|
+      (0..7).each do |y|
+        if (board[x][y].nil? || (player.color == board[x][y].color))
+          next
+        end
+        poss_moves = find_possible_moves(board[x][y])
+        return true if poss_moves.include?(position)
+      end
+    end
+    return false
+  end
+
+  def encastle_left(player)
+    if player.color == "white"
+      return false if (player.king_moved || player.queen_rook_moved)
+      return false if !(board[1][7].nil? && board[2][7].nil? && board[3][7].nil?)
+      [[2, 7],[3, 7],[4, 7]].each do |pos|
+        return false if checked_encastle?(player, pos)
+      end
+      make_move([4, 7], [2, 7]) #move king
+      make_move([0, 7], [3, 7]) #move rook
+    elsif player.color == "black"
+      return false if (player.king_moved || player.king_rook_moved)
+      return false if !(board[5][0].nil? && board[6][0].nil?)
+      [[4, 0],[5, 0],[6, 0]].each do |pos|
+        return false if checked_encastle?(player, pos)
+      end
+      make_move([4, 0], [6, 0])
+      make_move([7, 0], [5, 0])
+    end
+    player.king_moved = true
+    true
+  end
+
+  def encastle_right(player) 
+    if player.color == "white"
+      return false if (player.king_moved || player.king_rook_moved)
+      return false if !(board[5][7].nil? && board[6][7].nil?)
+      [[4, 7],[5, 7],[6, 7]].each do |pos|
+        return false if checked_encastle?(player, pos)
+      end
+      make_move([4, 7], [6, 7]) #move king
+      make_move([7, 7], [5, 7]) #move rook
+    elsif player.color == "black"
+      return false if (player.king_moved || player.queen_rook_moved)
+      return false if !(board[1][0].nil? && board[2][0].nil? && board[3][0].nil?)
+      [[2, 0],[3, 0],[4, 0]].each do |pos|
+        return false if checked_encastle?(player, pos)
+      end
+      make_move([4, 0], [2, 0])
+      make_move([0, 0], [3, 0])
+    end
+    player.king_moved = true
+    true
+  end
+
   def get_piece_code(piece)
     return piece.color[0] + "Pn" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
     return piece.color[0] + piece.class.to_s[0] + piece.class.to_s[-1]
@@ -311,7 +371,7 @@ class Game
 
   def get_xy
     xy = gets.chomp
-    while ((xy.length != 2) || !(xy.match /[0-7][0-7]/))
+    while ((xy.length != 2) || !(xy.match /[0-7][0-7]|88|99/))
       puts "Invalid coordinates. Try again."
       xy = gets.chomp
     end
@@ -320,12 +380,20 @@ class Game
 
   def player_turn(player)
     
-    puts "\n#{player.order_player} '#{player.name}', #{player.color}\'s turn"
+    puts "\n#{player.order_player}, #{player.color}\'s turn"
     while true
-      puts "Choose the coordinates of the piece to move (xy)"
+      puts "Choose the coordinates of the piece to move (xy), or write '88' to encastle left or '99' to encastle right"
       xy_origin = get_xy
+      if xy_origin == "88"
+        break if game_board.encastle_left(player)
+        puts "It is not possible to encastle left."
+        next
+      elsif xy_origin == "99"
+        break if game_board.encastle_right(player)
+        puts "It is not possible to encastle right."
+        next
+      end
       coord_from = xy_origin.split('')
-      puts coord_from.inspect
       if (game_board.board[coord_from[0].to_i][coord_from[1].to_i].nil?)
         puts "There's no piece to move at those coordinates. Try again."
         next
@@ -362,9 +430,15 @@ class Game
             return true
           end
         end
+        if piece.class == King
+          player.king_moved = true
+        elsif piece.class == Rook
+          player.queen_rook_moved = true if piece.position_x == 0
+          player.king_rook_moved = true if piece.position_x == 7
+        end
         break
       else
-        puts "That move is not allowed. Chose again."
+        puts "That move is not allowed. Choose again."
       end
     end
     game_board.display_board
@@ -372,12 +446,8 @@ class Game
   end
 
   def menu
-    puts "Name of player1:"
-    name_p1 = gets.chomp
-    puts "Name of player2:"
-    name_p2 = gets.chomp
-    @player1 = Player.new(name_p1, "white", "player1")
-    @player2 = Player.new(name_p2, "black", "player2")
+    @player1 = Player.new("white", "player1")
+    @player2 = Player.new("black", "player2")
     game_board.display_board
     loop do
       break if player_turn(@player1)
