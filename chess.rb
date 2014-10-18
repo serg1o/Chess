@@ -1,7 +1,9 @@
+require 'yaml'
+
 class Player
   attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved
   def initialize(color, order)
-    @order_player = order #player1, player2 etc
+    @order_player = order #player1, player2
     @color = color
     #useful when checking if encastling is possible
     @queen_rook_moved = false
@@ -23,7 +25,7 @@ class BlackPawn < Piece
   attr_accessor :hypo_moves, :possible_moves
   def initialize(color, x, y)
     super(color, x, y)
-    @hypo_moves = [[0, 1], [0, 2], [1, 1], [-1, 1]] #black pawn hypothetical moves are 1 or 2 squares forward and 0 sideways from current position
+    @hypo_moves = [[0, 1], [0, 2], [1, 1], [-1, 1]]
     @possible_moves = @hypo_moves
   end
 end
@@ -32,7 +34,7 @@ class WhitePawn < Piece
   attr_accessor :hypo_moves, :possible_moves
   def initialize(color, x, y)
     super(color, x, y)
-    @hypo_moves = [[0, -1], [0, -2], [-1, -1], [1, -1]] #white pawn hypothetical moves are 1 or 2 squares forward and 0 sideways from current position
+    @hypo_moves = [[0, -1], [0, -2], [-1, -1], [1, -1]]
     @possible_moves = @hypo_moves
   end
 end
@@ -82,7 +84,7 @@ end
 class Board
   attr_reader :board
   def initialize
-    @unicode = {"bRk" => "\u265c", "bKt" => "\u265e", "bBp" => "\u265d", "bQn" => "\u265b", "bKg" => "\u265a", "bPn" => "\u265f", "wRk" => "\u2656", "wKt" => "\u2658", "wBp" => "\u2657", "wQn" => "\u2655", "wKg" => "\u2654", "wPn" => "\u2659", }
+    @unicode = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u265b", "b_K" => "\u265a", "b_P" => "\u265f", "w_R" => "\u2656", "w_N" => "\u2658", "w_B" => "\u2657", "w_Q" => "\u2655", "w_K" => "\u2654", "w_P" => "\u2659", }
     @board = []
     (0..7).each { @board.push(Array.new(8, nil))}
 
@@ -240,7 +242,7 @@ class Board
     end
   end
 
-  def checked?(player) #check whether the opponent of player is in check
+  def check_by?(player) #check whether the opponent of player is in check
     king_coord_opponent = find_opponent_king_coordinates(player)
     (0..7).each do |x|
       (0..7).each do |y|
@@ -262,10 +264,10 @@ class Board
     board[from[0].to_i][from[1].to_i] = piece_to_restore
   end
 
-  def check_mate?(player)
+  def check_mate_by?(player)
     #for each of the opponent pieces
       #make all possible moves
-        #if there's any that removes the checked condition then return false
+        #if there's any that removes the check condition then return false
     (0..7).each do |x|
       (0..7).each do |y|
         if (board[x][y].nil? || (player.color == board[x][y].color))
@@ -277,7 +279,7 @@ class Board
           coord_from = [x, y]
           piece_at_dest = board[coord_to[0].to_i][coord_to[1].to_i]
           make_move(coord_from, coord_to)
-          temp = checked?(player)
+          temp = check_by?(player)
           make_move(coord_to, coord_from, piece_at_dest)
           return false if !temp
         end
@@ -299,46 +301,28 @@ class Board
     return false
   end
 
-  def encastle_left(player)
-    if player.color == "white"
-      return false if (player.king_moved || player.queen_rook_moved)
-      return false if !(board[1][7].nil? && board[2][7].nil? && board[3][7].nil?)
-      [[2, 7],[3, 7],[4, 7]].each do |pos|
-        return false if checked_encastle?(player, pos)
-      end
-      make_move([4, 7], [2, 7]) #move king
-      make_move([0, 7], [3, 7]) #move rook
-    elsif player.color == "black"
-      return false if (player.king_moved || player.king_rook_moved)
-      return false if !(board[5][0].nil? && board[6][0].nil?)
-      [[4, 0],[5, 0],[6, 0]].each do |pos|
-        return false if checked_encastle?(player, pos)
-      end
-      make_move([4, 0], [6, 0])
-      make_move([7, 0], [5, 0])
+  def encastle_left(player) #encastle with the queen's rook
+    player.color == "white" ? line = 7 : line = 0
+    return false if (player.king_moved || player.queen_rook_moved)
+    return false if !(board[1][line].nil? && board[2][line].nil? && board[3][line].nil?)
+    [[2, line],[3, line],[4, line]].each do |pos|
+      return false if checked_encastle?(player, pos)
     end
+    make_move([4, line], [2, line]) #move king
+    make_move([0, line], [3, line]) #move rook
     player.king_moved = true
     true
   end
 
-  def encastle_right(player) 
-    if player.color == "white"
-      return false if (player.king_moved || player.king_rook_moved)
-      return false if !(board[5][7].nil? && board[6][7].nil?)
-      [[4, 7],[5, 7],[6, 7]].each do |pos|
-        return false if checked_encastle?(player, pos)
-      end
-      make_move([4, 7], [6, 7]) #move king
-      make_move([7, 7], [5, 7]) #move rook
-    elsif player.color == "black"
-      return false if (player.king_moved || player.queen_rook_moved)
-      return false if !(board[1][0].nil? && board[2][0].nil? && board[3][0].nil?)
-      [[2, 0],[3, 0],[4, 0]].each do |pos|
-        return false if checked_encastle?(player, pos)
-      end
-      make_move([4, 0], [2, 0])
-      make_move([0, 0], [3, 0])
+  def encastle_right(player) #encastle with the king's rook
+    player.color == "white" ? line = 7 : line = 0
+    return false if (player.king_moved || player.king_rook_moved)
+    return false if !(board[5][line].nil? && board[6][line].nil?)
+    [[4, line],[5, line],[6, line]].each do |pos|
+      return false if checked_encastle?(player, pos)
     end
+    make_move([4, line], [6, line]) #move king
+    make_move([7, line], [5, line]) #move rook
     player.king_moved = true
     true
   end
@@ -350,10 +334,10 @@ class Board
     puts "Choose which piece do you want to promote the pawn to:"
     puts "q - Queen"
     puts "r - Rook"
-    puts "k - Knight"
+    puts "n - Knight"
     puts "b - Bishop"
     choice = gets.chomp.downcase
-    while ((choice.length != 1) || !(choice.match /q|r|k|b/))
+    while ((choice.length != 1) || !(choice.match /q|r|n|b/))
       puts "Invalid choice. Try again."
       choice = gets.chomp.downcase
     end
@@ -371,8 +355,9 @@ class Board
   end
 
   def get_piece_code(piece)
-    return piece.color[0] + "Pn" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
-    return piece.color[0] + piece.class.to_s[0] + piece.class.to_s[-1]
+    return piece.color[0] + "_P" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
+    return piece.color[0] + "_N" if piece.class == Knight
+    return piece.color[0] + "_" + piece.class.to_s[0]
   end
 
   def display_board
@@ -399,33 +384,96 @@ class Board
 end
 
 class Game
-  attr_accessor :game_board
+  attr_accessor :game_board, :player1, :player2, :game_file, :next_to_play
   def initialize(board = nil)
     @game_board = board || Board.new
+    @game_file = nil
+    @next_to_play = nil
+  end
+
+  def save_game
+    Dir.mkdir("saved_games") if !Dir.exists?("saved_games")
+    if @game_file.nil?
+      list_files = Dir["saved_games/*"]
+      list_ids = list_files.collect { |fname| fname.scan(/\d/).join.to_i }
+      new_id = list_ids.empty? ? 1 : list_ids.max + 1
+      @game_file = "saved_games/game#{new_id}.txt"
+    end
+    File.open(@game_file, "w").write(YAML::dump([self]))
+    puts "file saved as " + game_file
+  end
+
+  def load_game
+    
+    if !Dir.exists?("saved_games")
+      puts "There are no saved games to be loaded"
+      return false
+    end
+    list_files = Dir["saved_games/*"]
+    list_ids = list_files.collect { |fname| fname.scan(/\d/).join.to_i }
+    if list_ids.empty?
+      puts "There are no saved games to be loaded"
+      return false
+    end
+    puts "Choose the id of the file to load: "
+    puts list_ids.inspect
+    id_load = gets.chomp
+    if File.exists?("saved_games/game#{id_load}.txt")
+      data = File.open("saved_games/game#{id_load}.txt", "r").readlines.join
+      values = YAML::load(data)
+      self.game_board = values[0].game_board
+      self.player1 = values[0].player1
+      self.player2 = values[0].player2
+      self.game_file = values[0].game_file
+      self.next_to_play = values[0].next_to_play
+      return true
+    end
+    puts "File game#{id_load}.txt does not exist"
+    false
+  end
+
+  def print_important_message(msg)
+    puts
+    puts "%%%%%%%#{'%'*msg.length}%%%%%%%"
+    puts "%%     #{msg}     %%"
+    puts "%%%%%%%#{'%'*msg.length}%%%%%%%"
+    puts
   end
 
   def get_xy
-    xy = gets.chomp
-    while ((xy.length != 2) || !(xy.match /[0-7][0-7]|88|99/))
-      puts "Invalid coordinates. Try again."
+    while true
       xy = gets.chomp
+      if ((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/))
+        return xy
+      elsif ((xy.length == 1) && (xy.match /s|S|q|Q/))
+        return xy
+      else
+        puts "Invalid input. Try again."
+      end
     end
-    xy
   end
 
   def player_turn(player)
     
     puts "\n#{player.order_player}, #{player.color}\'s turn"
     while true
-      puts "Choose the coordinates of the piece to move (xy), or write '88' to encastle left or '99' to encastle right"
+      puts "Write 's' to save the game."
+      puts "Write 'q' to exit the game without saving."
+      puts "Choose the coordinates of the piece to move (xy),"
+      puts "or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook."
       xy_origin = get_xy
+      return true if xy_origin.downcase == "q"
+      if xy_origin.downcase == "s"
+        save_game
+        next
+      end
       if xy_origin == "88"
         break if game_board.encastle_left(player)
-        puts "It is not possible to encastle left."
+        puts "It is not possible to encastle with the queen's rook."
         next
       elsif xy_origin == "99"
         break if game_board.encastle_right(player)
-        puts "It is not possible to encastle right."
+        puts "It is not possible to encastle with the king's rook."
         next
       end
       coord_from = xy_origin.split('')
@@ -446,24 +494,24 @@ class Game
         game_board.make_move(coord_from, coord_to)
         
         opponent = (@player1 == player) ? @player2 : @player1
-        if game_board.checked?(opponent)
-          puts "You can't make that move. You'll be in check."
+        if game_board.check_by?(opponent)
+          print_important_message("You can't make that move. You'll be in check.")
           game_board.make_move(coord_to, coord_from, piece_at_dest)
           next
         end
         game_board.promote_pawn(coord_to) if (((piece.class == WhitePawn) || (piece.class == BlackPawn)) && ((coord_to[1] == "0") || (coord_to[1] == "7")))
-        if game_board.checked?(player)
-          if game_board.check_mate?(player)
+        if game_board.check_by?(player)
+          if game_board.check_mate_by?(player)
             game_board.display_board
-            puts player.color + " has won the game."
+            print_important_message(player.color + " has won the game.")
             return true
           end
-          puts player.color + " has checked his opponent!"
+          print_important_message(player.color + " has checked his opponent!")
         else
           #check for stalemate
-          if game_board.check_mate?(player) #check if any possible move results in check while not being in check in the current position
+          if game_board.check_mate_by?(player) #check if any possible move results in check while not being in check in the current position
             game_board.display_board
-            puts "The game ended in a stalemate."
+            print_important_message("The game ended in a stalemate.")
             return true
           end
         end
@@ -478,17 +526,29 @@ class Game
         puts "That move is not allowed. Choose again."
       end
     end
-    game_board.display_board
     nil
   end
 
   def menu
-    @player1 = Player.new("white", "player1")
-    @player2 = Player.new("black", "player2")
-    game_board.display_board
+    puts "Do you want to load a saved game? (y/n)"
+    load_saved = gets[0].downcase
+    if (load_saved == "y") && load_game
+      if @next_to_play == "black"
+        game_board.display_board
+        return if player_turn(@player2)
+        @next_to_play = @player1.color
+      end
+    else
+      @player1 = Player.new("white", "player1")
+      @player2 = Player.new("black", "player2")
+    end
     loop do
+      game_board.display_board
       break if player_turn(@player1)
+      @next_to_play = @player2.color
+      game_board.display_board
       break if player_turn(@player2)
+      @next_to_play = @player1.color
     end
   end
 
