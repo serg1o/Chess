@@ -1125,6 +1125,192 @@ describe Game do
       expect(@game.board.check_by?(@player2)).to eql(true)
     end
   end
-   
+  
+  context "taking pawn en passant" do
+    before(:each) do
+      @board = Board.new
+      @board.squares[7][3] = King.new("black", 7, 3)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[7][4] = BlackPawn.new("black", 7, 4)
+      @board.squares[6][6] = WhitePawn.new("white", 6, 6)
+      @board.squares[6][1] = Queen.new("white", 6, 1)
+      @game = Game.new(@board)
+      @game.player1 = @player1
+      @game.player2 = @player2
+    end
+    context "when king is in check" do
+
+      it "takes opponent's pawn en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "66"
+          else
+            resp = "64"
+          end
+          @counter += 1
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.board.display_board
+        expect(@game.board.check_mate_by?(@player1)).to eql(false)
+        expect(@game.board.check_by?(@player1)).to eql(true)
+        expect(@game.board.squares[7][4].possible_moves.include?([6, 5])).to eql(true)
+      end
+    end
+
+    context "when pawn to be taken is to the left" do
+      before do
+        @game.board.squares[5][1] = BlackPawn.new("black", 5, 1)
+        @game.board.squares[4][3] = WhitePawn.new("white", 4, 3)
+       
+      end
+
+      it "takes opponent's pawn en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "51"
+          elsif @counter == 1
+            resp = "53"
+          elsif @counter == 2
+            resp = "43" 
+          else   
+            resp = "52"
+          end
+          @counter += 1
+          resp
+        end
+        @game.player_turn(@player2)
+        @game.board.display_board
+        @game.player_turn(@player1)
+        @game.board.display_board
+        expect(@game.board.squares[5][3]).to eql(nil)
+      end
+    end
+
+    context "when pawn to be taken is to the right" do
+      before do
+        @game.board.squares[3][1] = BlackPawn.new("black", 3, 1)
+        @game.board.squares[4][3] = WhitePawn.new("white", 4, 3)
+      end
+
+      it "takes opponent's pawn en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "31"
+          elsif @counter == 1
+            resp = "33"
+          elsif @counter == 2
+            resp = "43" 
+          else   
+            resp = "32"
+          end
+          @counter += 1
+          resp
+        end
+        @game.player_turn(@player2)
+        @game.board.display_board
+        @game.player_turn(@player1)
+        @game.board.display_board
+        expect(@game.board.squares[3][3]).to eql(nil)
+      end
+    end
+
+    context "when pawn is not taken immediately after having moved two squares" do
+      before do
+        @game.board.squares[3][1] = BlackPawn.new("black", 3, 1)
+        @game.board.squares[4][3] = WhitePawn.new("white", 4, 3)
+      end
+
+      it "can't take the opponent's pawn en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "31"
+          elsif @counter == 1
+            resp = "33"
+          elsif @counter == 2
+            resp = "47" 
+          elsif @counter == 3
+            resp = "57"
+          elsif @counter == 4
+            resp = "74"
+          elsif @counter == 5
+            resp = "75" 
+          end
+          @counter += 1
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.board.display_board
+        @game.player_turn(@player1)
+        @game.board.display_board
+        @game.player_turn(@player2)
+        @game.board.display_board
+        
+        expect(@game.board.squares[4][3].possible_moves.include?([3, 2])).to eql(false)
+      end
+    end
+
+
+   context "when the piece that made a move of two squares is not a pawn" do
+      before do
+        @game.board.squares[5][1] = Rook.new("black", 5, 1)
+        @game.board.squares[4][3] = WhitePawn.new("white", 4, 3)
+       
+      end
+
+      it "can't take the rook en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "51"
+          else
+            resp = "53"
+          end
+          @counter += 1
+          resp
+        end
+        @game.player_turn(@player2)
+        @game.board.display_board
+        expect(@game.board.squares[4][3].possible_moves.include?([5, 2])).to eql(false)
+      end
+    end
+
+    context "when pawn to be taken only moved one square" do
+      before do
+        @game.board.squares[5][2] = BlackPawn.new("black", 5, 2)
+        @game.board.squares[4][3] = WhitePawn.new("white", 4, 3)
+       
+      end
+
+      it "can't take the opponent's pawn en passant" do
+
+        allow(@game).to receive(:gets) do
+          @counter ||= 0
+          if @counter == 0
+            resp = "52"
+          else
+            resp = "53"
+          end
+          @counter += 1
+          resp
+        end
+        @game.player_turn(@player2)
+        @game.board.display_board
+        expect(@game.board.squares[4][3].possible_moves.include?([5, 2])).to eql(false)
+      end
+    end
+
+  end
 end
 
