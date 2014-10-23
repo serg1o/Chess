@@ -432,10 +432,6 @@ class Game
   end
 
   def load_game 
-    if !Dir.exists?("saved_games")
-      puts "There are no saved games to be loaded"
-      return false
-    end
     list_files = Dir["saved_games/*"]
     list_ids = list_files.collect { |fname| fname.scan(/\d/).join.to_i }
     if list_ids.empty?
@@ -494,6 +490,28 @@ class Game
       end
       if ((piece.position_x - 1 >= 0) && (board.squares[piece.position_x - 1][piece.position_y].class == WhitePawn))
         board.squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
+      end
+    end
+  end
+
+  #verify if the player's king or rooks moved or if any of the opponents rooks was taken
+  # in order to invalidate the corresponding encastling move
+  def check_rooks_king_moved(piece, player, opponent, coord_from, coord_to)
+    if piece.class == King
+      player.king_moved = true
+    else
+      if player.color == "black"
+        player.queen_rook_moved = true if coord_from == [0, 0]
+        player.king_rook_moved = true if coord_from == [7, 0]
+        # case when player takes one of the opponent's rooks at their initial positions
+        opponent.queen_rook_moved = true if coord_to == [0, 7]
+        opponent.king_rook_moved = true if coord_to == [7, 7]
+      else
+        player.queen_rook_moved = true if coord_from == [0, 7]
+        player.king_rook_moved = true if coord_from == [7, 7]
+        # case when player takes one of the opponent's rooks at their initial positions
+        opponent.queen_rook_moved = true if coord_to == [0, 0]
+        opponent.king_rook_moved = true if coord_to == [7, 0]
       end
     end
   end
@@ -557,7 +575,6 @@ class Game
       coord_to = [coord_to[0].to_i, coord_to[1].to_i]
       if piece.possible_moves.include? ([coord_to[0], coord_to[1]])    
         piece_at_dest = board.make_move(coord_from, coord_to)
-       
         opponent = (@player1 == player) ? @player2 : @player1
         if board.check_by?(opponent)
           board.display_board ###########
@@ -585,12 +602,7 @@ class Game
             return true
           end
         end
-        if piece.class == King
-          player.king_moved = true
-        elsif piece.class == Rook
-          player.queen_rook_moved = true if piece.position_x == 0
-          player.king_rook_moved = true if piece.position_x == 7
-        end
+        check_rooks_king_moved(piece, player, opponent, coord_from, coord_to)
         break
       else
         board.display_board ###########
@@ -601,17 +613,18 @@ class Game
   end
 
   def menu
-    puts "Do you want to load a saved game? (y/n)"
-    load_saved = gets[0].downcase
-    if (load_saved == "y") && load_game
-      if @next_to_play == "black"
-        return if player_turn(@player2)
-        @next_to_play = @player1.color
+    @player1 = Player.new("white", "player1")
+    @player2 = Player.new("black", "player2")
+    @board.create_pieces
+    if Dir.exists?("saved_games")
+      puts "Do you want to load a saved game? (y/n)"
+      load_saved = gets[0].downcase
+      if (load_saved == "y") && load_game
+        if @next_to_play == "black"
+          return if player_turn(@player2)
+          @next_to_play = @player1.color
+        end
       end
-    else
-      @player1 = Player.new("white", "player1")
-      @player2 = Player.new("black", "player2")
-      @board.create_pieces
     end
     loop do
       break if player_turn(@player1)

@@ -55,6 +55,29 @@ describe Game do
 
       end
 
+      context "with opponent piece two squares in front" do
+        before(:each) do
+          @board = Board.new
+          @piece = WhitePawn.new("white", 4, 6)
+          @board.squares[4][6] = @piece
+          @board.squares[4][4] = Knight.new("black", 4, 4)
+          @board.find_possible_moves_white_pawn(@piece)
+          @piece2 = BlackPawn.new("black", 0, 1)
+          @board.squares[0][1] = @piece
+          @board.squares[0][3] = Knight.new("white", 0, 3)
+          @board.find_possible_moves_black_pawn(@piece2)
+          @game = Game.new(@board)
+        end
+
+        it "white pawn can't take the opponent's piece" do
+          expect(@game.board.squares[4][6].possible_moves.include?([4, 4])).to eql(false)
+        end
+
+        it "black pawn can't take the opponent's piece" do
+          expect(@game.board.squares[0][1].possible_moves.include?([0, 3])).to eql(false)
+        end
+      end
+
       context "with pieces in the first square on a diagonal" do
         before(:each) do
           @board = Board.new
@@ -469,9 +492,12 @@ describe Game do
     before(:all) do
       @board = Board.new
       @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[7][7] = Rook.new("white", 7, 7)
       @board.squares[0][7] = Rook.new("white", 0, 7)
       @game = Game.new(@board)
+      @game.player1 = @player1
+      @game.player2 = @player2
     end
     
     context " with pieces between king and rook" do
@@ -531,29 +557,52 @@ describe Game do
     end
 
     context " when king has moved" do
-      before do
-        @player1.king_moved = true
-      end
 
       after do
         @player1.king_moved = false
       end
    
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["47", "37", "40", "50", "37", "47"]
+          if @index < 6
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player2)
+        @game.player_turn(@player1)
         expect(@game.board.encastle_right(@player1)).to eql(false)
       end
     end
 
     context " when king's rook has moved" do
-      before do
-        @player1.king_rook_moved = true
-      end
    
       after do
         @player1.king_rook_moved = false
       end
 
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["77", "67", "67", "77"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player1)
         expect(@game.board.encastle_right(@player1)).to eql(false)
       end
     end
@@ -592,9 +641,7 @@ describe Game do
     end
 
     context "when the queen's rook has moved" do
-      before do
-        @player1.queen_rook_moved = true
-      end
+      
       after do
         @player1.queen_rook_moved = false
         @game.board.make_move([6, 7],[4, 7])
@@ -602,21 +649,37 @@ describe Game do
       end
 
       it "can encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["07", "17", "17", "07"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player1)
         expect(@game.board.encastle_right(@player1)).to eql(true)
         expect(@game.board.squares[6][7].class).to eql(King)
         expect(@game.board.squares[5][7].class).to eql(Rook)
       end
     end
-
   end
 
   context "white player encastling with queen's rook" do
     before(:all) do
       @board = Board.new
       @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[7][7] = Rook.new("white", 7, 7)
       @board.squares[0][7] = Rook.new("white", 0, 7)
       @game = Game.new(@board)
+      @game.player1 = @player1
+      @game.player2 = @player2
     end
     
     context " with pieces between king and rook" do
@@ -690,29 +753,51 @@ describe Game do
     end
 
     context " when king has moved" do
-      before do
-        @player1.king_moved = true
-      end
 
       after do
         @player1.king_moved = false
       end
    
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["47", "37", "37", "47"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player1)
         expect(@game.board.encastle_left(@player1)).to eql(false)
       end
     end
 
     context " when queen's rook has moved" do
-      before do
-        @player1.queen_rook_moved = true
-      end
    
       after do
         @player1.queen_rook_moved = false
       end
 
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["07", "17", "17", "07"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player1)
         expect(@game.board.encastle_left(@player1)).to eql(false)
       end
     end
@@ -751,9 +836,7 @@ describe Game do
     end
 
     context "when the king's rook has moved" do
-      before do
-        @player1.king_rook_moved = true
-      end
+    
       after do
         @player1.king_rook_moved = false
         @game.board.make_move([2, 7],[4, 7])
@@ -761,6 +844,21 @@ describe Game do
       end
 
       it "can encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["77", "67", "67", "77"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player1)
+        @game.player_turn(@player1)
+
         expect(@game.board.encastle_left(@player1)).to eql(true)
         expect(@game.board.squares[2][7].class).to eql(King)
         expect(@game.board.squares[3][7].class).to eql(Rook)
@@ -771,16 +869,16 @@ describe Game do
 
 
 
-
-
-
   context "black player encastling with king's rook" do
     before(:all) do
       @board = Board.new
       @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[7][0] = Rook.new("black", 7, 0)
       @board.squares[0][0] = Rook.new("black", 0, 0)
       @game = Game.new(@board)
+      @game.player1 = @player1
+      @game.player2 = @player2
     end
     
     context " with pieces between king and rook" do
@@ -840,29 +938,51 @@ describe Game do
     end
 
     context " when king has moved" do
-      before do
-        @player2.king_moved = true
-      end
 
       after do
         @player2.king_moved = false
       end
    
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["40", "41", "41", "40"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_right(@player2)).to eql(false)
       end
     end
 
     context " when king's rook has moved" do
-      before do
-        @player2.king_rook_moved = true
-      end
    
       after do
         @player2.king_rook_moved = false
       end
 
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["70", "71", "71", "70"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_right(@player2)).to eql(false)
       end
     end
@@ -901,9 +1021,7 @@ describe Game do
     end
 
     context "when the queen's rook has moved" do
-      before do
-        @player2.queen_rook_moved = true
-      end
+      
       after do
         @player2.queen_rook_moved = false
         @game.board.make_move([6, 0],[4, 0])
@@ -911,6 +1029,20 @@ describe Game do
       end
 
       it "can encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["00", "01", "01", "00"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_right(@player2)).to eql(true)
         expect(@game.board.squares[6][0].class).to eql(King)
         expect(@game.board.squares[5][0].class).to eql(Rook)
@@ -923,9 +1055,12 @@ describe Game do
     before(:all) do
       @board = Board.new
       @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[7][0] = Rook.new("black", 7, 0)
       @board.squares[0][0] = Rook.new("black", 0, 0)
       @game = Game.new(@board)
+      @game.player1 = @player1
+      @game.player2 = @player2
     end
     
     context " with pieces between king and rook" do
@@ -999,29 +1134,52 @@ describe Game do
     end
 
     context " when king has moved" do
-      before do
-        @player2.king_moved = true
-      end
 
       after do
         @player2.king_moved = false
       end
    
       it "can't encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["40", "41", "41", "40"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_left(@player2)).to eql(false)
       end
     end
 
     context " when queen's rook has moved" do
-      before do
-        @player2.queen_rook_moved = true
-      end
    
       after do
         @player2.queen_rook_moved = false
       end
 
       it "can't encastle" do
+
+       allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["00", "01", "01", "00"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_left(@player2)).to eql(false)
       end
     end
@@ -1060,9 +1218,7 @@ describe Game do
     end
 
     context "when the king's rook has moved" do
-      before do
-        @player2.king_rook_moved = true
-      end
+
       after do
         @player2.king_rook_moved = false
         @game.board.make_move([2, 0],[4, 0])
@@ -1070,6 +1226,20 @@ describe Game do
       end
 
       it "can encastle" do
+        allow(@game).to receive(:gets) do
+          @index ||= 0
+          moves = ["70", "71", "71", "70"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
+          end
+          resp
+        end
+
+        @game.player_turn(@player2)
+        @game.player_turn(@player2)
         expect(@game.board.encastle_left(@player2)).to eql(true)
         expect(@game.board.squares[2][0].class).to eql(King)
         expect(@game.board.squares[3][0].class).to eql(Rook)
@@ -1143,18 +1313,19 @@ describe Game do
       it "takes opponent's pawn en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "66"
+          @index ||= 0
+          moves = ["66", "64"]
+          if @index < 2
+            resp = moves[@index]
+            @index += 1
           else
-            resp = "64"
+            resp = "q"
           end
-          @counter += 1
           resp
         end
 
         @game.player_turn(@player1)
-        @game.board.display_board
+        
         expect(@game.board.check_mate_by?(@player1)).to eql(false)
         expect(@game.board.check_by?(@player1)).to eql(true)
         expect(@game.board.squares[7][4].possible_moves.include?([6, 5])).to eql(true)
@@ -1171,23 +1342,20 @@ describe Game do
       it "takes opponent's pawn en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "51"
-          elsif @counter == 1
-            resp = "53"
-          elsif @counter == 2
-            resp = "43" 
-          else   
-            resp = "52"
+          @index ||= 0
+          moves = ["51", "53", "43", "52"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
           end
-          @counter += 1
           resp
         end
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         @game.player_turn(@player1)
-        @game.board.display_board
+        
         expect(@game.board.squares[5][3]).to eql(nil)
       end
     end
@@ -1201,23 +1369,20 @@ describe Game do
       it "takes opponent's pawn en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "31"
-          elsif @counter == 1
-            resp = "33"
-          elsif @counter == 2
-            resp = "43" 
-          else   
-            resp = "32"
+          @index ||= 0
+          moves = ["31", "33", "43", "32"]
+          if @index < 4
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
           end
-          @counter += 1
           resp
         end
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         @game.player_turn(@player1)
-        @game.board.display_board
+        
         expect(@game.board.squares[3][3]).to eql(nil)
       end
     end
@@ -1231,30 +1396,23 @@ describe Game do
       it "can't take the opponent's pawn en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "31"
-          elsif @counter == 1
-            resp = "33"
-          elsif @counter == 2
-            resp = "47" 
-          elsif @counter == 3
-            resp = "57"
-          elsif @counter == 4
-            resp = "74"
-          elsif @counter == 5
-            resp = "75" 
+          @index ||= 0
+          moves = ["31", "33", "47", "57", "74", "75"]
+          if @index < 6
+            resp = moves[@index]
+            @index += 1
+          else
+            resp = "q"
           end
-          @counter += 1
           resp
         end
 
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         @game.player_turn(@player1)
-        @game.board.display_board
+        
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         
         expect(@game.board.squares[4][3].possible_moves.include?([3, 2])).to eql(false)
       end
@@ -1271,17 +1429,18 @@ describe Game do
       it "can't take the rook en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "51"
+          @index ||= 0
+          moves = ["51", "53"]
+          if @index < 2
+            resp = moves[@index]
+            @index += 1
           else
-            resp = "53"
+            resp = "q"
           end
-          @counter += 1
           resp
         end
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         expect(@game.board.squares[4][3].possible_moves.include?([5, 2])).to eql(false)
       end
     end
@@ -1296,21 +1455,292 @@ describe Game do
       it "can't take the opponent's pawn en passant" do
 
         allow(@game).to receive(:gets) do
-          @counter ||= 0
-          if @counter == 0
-            resp = "52"
+          @index ||= 0
+          moves = ["52", "53"]
+          if @index < 2
+            resp = moves[@index]
+            @index += 1
           else
-            resp = "53"
+            resp = "q"
           end
-          @counter += 1
           resp
         end
         @game.player_turn(@player2)
-        @game.board.display_board
+        
         expect(@game.board.squares[4][3].possible_moves.include?([5, 2])).to eql(false)
       end
     end
-
   end
+
+  context "when white player's queen rook moves to king's rook column" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[0][5] = Rook.new("white", 0, 5)
+      @board.squares[7][7] = Rook.new("white", 7, 7)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling is possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["05", "75"]
+        if @index < 2
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player1)
+      
+      expect(@game.board.encastle_right(@game.player1)).to eql(true)
+    end
+  end
+
+  context "when white player's king rook moves to queen's rook column" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[0][7] = Rook.new("white", 0, 7)
+      @board.squares[7][5] = Rook.new("white", 7, 5)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling is possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["75", "05", "40", "41", "05", "65"]
+        if @index < 6
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player1)
+      
+      @game.player_turn(@game.player2)
+      
+      @game.player_turn(@game.player1)
+      
+      expect(@game.board.encastle_left(@game.player1)).to eql(true)
+    end
+  end
+
+
+
+  context "when black player's queen rook moves to king's rook column" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[7][0] = Rook.new("black", 7, 0)
+      @board.squares[0][2] = Rook.new("black", 0, 2)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling is possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["02", "72"]
+        if @index < 2
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player2)
+      
+      expect(@game.board.encastle_right(@game.player2)).to eql(true)
+    end
+  end
+
+  context "when black player's king rook moves to queen's rook column" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[0][0] = Rook.new("black", 0, 0)
+      @board.squares[7][2] = Rook.new("black", 7, 2)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling is possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["72", "02", "47", "57", "02", "12"]
+        if @index < 6
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player2)
+      
+      @game.player_turn(@game.player1)
+      
+      @game.player_turn(@game.player2)
+      
+      expect(@game.board.encastle_left(@game.player2)).to eql(true)
+    end
+  end
+
+
+  context "when white player's king rook is taken" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[6][5] = Knight.new("black", 6, 5)
+      @board.squares[7][7] = Rook.new("white", 7, 7)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling with king's rook is not possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["65", "77"]
+        if @index < 2
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player2)
+      
+      expect(@game.board.encastle_right(@game.player1)).to eql(false)
+    end
+  end
+
+  context "when white player's queen rook is taken" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[0][7] = Rook.new("white", 0, 7)
+      @board.squares[7][7] = Rook.new("white", 7, 7)
+      @board.squares[1][6] = Bishop.new("black", 1, 6)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling with queen's rook is not possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["16", "07", "77", "76", "07", "34"]
+        if @index < 6
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player2)
+      
+      @game.player_turn(@game.player1)
+      
+      @game.player_turn(@game.player2)
+      
+      expect(@game.board.encastle_left(@game.player1)).to eql(false)
+    end
+  end
+
+
+   context "when black player's king rook is taken" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[6][2] = Knight.new("white", 6, 2)
+      @board.squares[7][0] = Rook.new("black", 7, 0)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling with king's rook is not possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["62", "70"]
+        if @index < 2
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player1)
+      
+      expect(@game.board.encastle_right(@game.player2)).to eql(false)
+    end
+  end
+
+  context "when black player's queen rook is taken" do
+    before do
+      @board = Board.new
+      @board.squares[4][0] = King.new("black", 4, 0)
+      @board.squares[4][7] = King.new("white", 4, 7)
+      @board.squares[0][0] = Rook.new("black", 0, 0)
+      @board.squares[7][0] = Rook.new("black", 7, 0)
+      @board.squares[1][1] = Bishop.new("white", 1, 1)
+      @game = Game.new(@board)
+      @game.player1 = Player.new("white", "player1")
+      @game.player2 = Player.new("black", "player2")
+    end
+
+    it "encastling with queen's rook is not possible" do
+       allow(@game).to receive(:gets) do
+        @index ||= 0
+        moves = ["11", "00", "70", "71", "00", "55"]
+        if @index < 6
+          resp = moves[@index]
+          @index += 1
+        else
+          resp = "q"
+        end
+        resp
+      end
+
+      @game.player_turn(@game.player1)
+      
+      @game.player_turn(@game.player2)
+      
+      @game.player_turn(@game.player1)
+      
+      expect(@game.board.encastle_left(@game.player2)).to eql(false)
+    end
+  end
+
 end
 
