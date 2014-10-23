@@ -489,13 +489,19 @@ describe Game do
   end
 
   context "white player encastling with king's rook" do
-    before(:all) do
+    before(:each) do
       @board = Board.new
       @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[7][7] = Rook.new("white", 7, 7)
       @board.squares[0][7] = Rook.new("white", 0, 7)
       @game = Game.new(@board)
+      @player1.queen_rook_moved = false
+      @player1.king_rook_moved = false
+      @player1.king_moved = false
+      @player2.queen_rook_moved = false
+      @player2.king_rook_moved = false
+      @player2.king_moved = false
       @game.player1 = @player1
       @game.player2 = @player2
     end
@@ -557,10 +563,6 @@ describe Game do
     end
 
     context " when king has moved" do
-
-      after do
-        @player1.king_moved = false
-      end
    
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -583,10 +585,6 @@ describe Game do
     end
 
     context " when king's rook has moved" do
-   
-      after do
-        @player1.king_rook_moved = false
-      end
 
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -613,7 +611,6 @@ describe Game do
       end
 
       after do
-        @player1.king_moved = false
         @game.board.make_move([6, 7],[4, 7])
         @game.board.make_move([5, 7],[7, 7])
         @board.squares[7][5] = nil
@@ -628,7 +625,6 @@ describe Game do
 
     context "when no piece is between king and rook" do
       after do
-        @player1.king_moved = false
         @game.board.make_move([6, 7],[4, 7])
         @game.board.make_move([5, 7],[7, 7])
       end
@@ -643,7 +639,6 @@ describe Game do
     context "when the queen's rook has moved" do
       
       after do
-        @player1.queen_rook_moved = false
         @game.board.make_move([6, 7],[4, 7])
         @game.board.make_move([5, 7],[7, 7])
       end
@@ -671,13 +666,19 @@ describe Game do
   end
 
   context "white player encastling with queen's rook" do
-    before(:all) do
+    before(:each) do
       @board = Board.new
       @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[7][7] = Rook.new("white", 7, 7)
       @board.squares[0][7] = Rook.new("white", 0, 7)
       @game = Game.new(@board)
+      @player1.queen_rook_moved = false
+      @player1.king_rook_moved = false
+      @player1.king_moved = false
+      @player2.queen_rook_moved = false
+      @player2.king_rook_moved = false
+      @player2.king_moved = false
       @game.player1 = @player1
       @game.player2 = @player2
     end
@@ -747,16 +748,12 @@ describe Game do
         @board.squares[1][5] = nil
       end
    
-      it "can't encastle" do
-        expect(@game.board.encastle_left(@player1)).to eql(false)
+      it "can encastle" do
+        expect(@game.board.encastle_left(@player1)).to eql(true)
       end
     end
 
     context " when king has moved" do
-
-      after do
-        @player1.king_moved = false
-      end
    
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -778,10 +775,6 @@ describe Game do
     end
 
     context " when queen's rook has moved" do
-   
-      after do
-        @player1.queen_rook_moved = false
-      end
 
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -808,7 +801,6 @@ describe Game do
       end
 
       after do
-        @player1.king_moved = false
         @game.board.make_move([2, 7],[4, 7])
         @game.board.make_move([3, 7],[0, 7])
         @board.squares[0][5] = nil
@@ -823,7 +815,6 @@ describe Game do
 
     context "when no piece is between king and rook" do
       after do
-        @player1.king_moved = false
         @game.board.make_move([2, 7],[4, 7])
         @game.board.make_move([3, 7],[0, 7])
       end
@@ -838,7 +829,6 @@ describe Game do
     context "when the king's rook has moved" do
     
       after do
-        @player1.king_rook_moved = false
         @game.board.make_move([2, 7],[4, 7])
         @game.board.make_move([3, 7],[0, 7])
       end
@@ -870,13 +860,19 @@ describe Game do
 
 
   context "black player encastling with king's rook" do
-    before(:all) do
+    before(:each) do
       @board = Board.new
       @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[7][0] = Rook.new("black", 7, 0)
       @board.squares[0][0] = Rook.new("black", 0, 0)
       @game = Game.new(@board)
+      @player1.queen_rook_moved = false
+      @player1.king_rook_moved = false
+      @player1.king_moved = false
+      @player2.queen_rook_moved = false
+      @player2.king_rook_moved = false
+      @player2.king_moved = false
       @game.player1 = @player1
       @game.player2 = @player2
     end
@@ -938,10 +934,6 @@ describe Game do
     end
 
     context " when king has moved" do
-
-      after do
-        @player2.king_moved = false
-      end
    
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -963,10 +955,6 @@ describe Game do
     end
 
     context " when king's rook has moved" do
-   
-      after do
-        @player2.king_rook_moved = false
-      end
 
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -993,7 +981,6 @@ describe Game do
       end
 
       after do
-        @player2.king_moved = false
         @game.board.make_move([6, 0],[4, 0])
         @game.board.make_move([5, 0],[7, 0])
         @board.squares[7][5] = nil
@@ -1008,7 +995,6 @@ describe Game do
 
     context "when no piece is between king and rook" do
       after do
-        @player2.king_moved = false
         @game.board.make_move([6, 0],[4, 0])
         @game.board.make_move([5, 0],[7, 0])
       end
@@ -1023,7 +1009,6 @@ describe Game do
     context "when the queen's rook has moved" do
       
       after do
-        @player2.queen_rook_moved = false
         @game.board.make_move([6, 0],[4, 0])
         @game.board.make_move([5, 0],[7, 0])
       end
@@ -1052,13 +1037,19 @@ describe Game do
   end
 
   context "black player encastling with queen's rook" do
-    before(:all) do
+    before(:each) do
       @board = Board.new
       @board.squares[4][0] = King.new("black", 4, 0)
       @board.squares[4][7] = King.new("white", 4, 7)
       @board.squares[7][0] = Rook.new("black", 7, 0)
       @board.squares[0][0] = Rook.new("black", 0, 0)
       @game = Game.new(@board)
+      @player1.queen_rook_moved = false
+      @player1.king_rook_moved = false
+      @player1.king_moved = false
+      @player2.queen_rook_moved = false
+      @player2.king_rook_moved = false
+      @player2.king_moved = false
       @game.player1 = @player1
       @game.player2 = @player2
     end
@@ -1128,16 +1119,12 @@ describe Game do
         @board.squares[1][5] = nil
       end
    
-      it "can't encastle" do
-        expect(@game.board.encastle_left(@player2)).to eql(false)
+      it "can encastle" do
+        expect(@game.board.encastle_left(@player2)).to eql(true)
       end
     end
 
     context " when king has moved" do
-
-      after do
-        @player2.king_moved = false
-      end
    
       it "can't encastle" do
         allow(@game).to receive(:gets) do
@@ -1159,10 +1146,6 @@ describe Game do
     end
 
     context " when queen's rook has moved" do
-   
-      after do
-        @player2.queen_rook_moved = false
-      end
 
       it "can't encastle" do
 
@@ -1190,7 +1173,6 @@ describe Game do
       end
 
       after do
-        @player2.king_moved = false
         @game.board.make_move([2, 0],[4, 0])
         @game.board.make_move([3, 0],[0, 0])
         @board.squares[0][5] = nil
@@ -1205,7 +1187,6 @@ describe Game do
 
     context "when no piece is between king and rook" do
       after do
-        @player2.king_moved = false
         @game.board.make_move([2, 0],[4, 0])
         @game.board.make_move([3, 0],[0, 0])
       end
@@ -1220,7 +1201,6 @@ describe Game do
     context "when the king's rook has moved" do
 
       after do
-        @player2.king_rook_moved = false
         @game.board.make_move([2, 0],[4, 0])
         @game.board.make_move([3, 0],[0, 0])
       end
