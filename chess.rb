@@ -64,7 +64,6 @@ class King < Piece
   def initialize(color)
     super(color)
     @hypo_moves = [[0, -1], [0, 1], [1, -1], [1, 1], [1, 0], [-1, -1], [-1, 1], [-1, 0]]
-    @possible_moves = []
   end
 end
 
@@ -77,7 +76,7 @@ class Knight < Piece
 end
 
 class Board
-  attr_reader :squares
+  attr_accessor :squares
   def initialize
     @unicode = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u265b", "b_K" => "\u265a", "b_P" => "\u265f", "w_R" => "\u2656", "w_N" => "\u2658", "w_B" => "\u2657", "w_Q" => "\u2655", "w_K" => "\u2654", "w_P" => "\u2659"}
     @table_lines = {:v_l_join => "\u251c", :mid_join => "\u253c", :v_r_join => "\u2524", :mid_top_join => "\u252c", :mid_bot_join => "\u2534", :l_t_corner => "\u250c", :r_t_corner => "\u2510", :l_b_corner => "\u2514", :r_b_corner => "\u2518", :v_line => "\u2502", :h_line => "\u2500"}
@@ -118,10 +117,10 @@ class Board
     update_positions
   end
 
-  def get_line_moves(origin_x, origin_y, inc_x, inc_y, start_square)
+  def line_moves(origin_x, origin_y, inc_x, inc_y, start_square, direction)
     moves = []
-    i = inc_x
-    j = inc_y
+    i = direction * inc_x
+    j = direction * inc_y
     while true
       new_x = origin_x + i
       new_y = origin_y + j
@@ -132,25 +131,14 @@ class Board
         break
       end
       moves.push([new_x, new_y])
-      i += inc_x
-      j += inc_y
-    end
-    i = -inc_x
-    j = -inc_y
-    while true
-      new_x = origin_x + i
-      new_y = origin_y + j
-      break if !(new_x.between?(0, 7) && new_y.between?(0, 7))
-      square = squares[new_x][new_y]
-      if !square.nil?
-        moves.push([new_x, new_y]) if square.color != start_square.color
-        break
-      end
-      moves.push([new_x, new_y])
-      i -= inc_x
-      j -= inc_y
+      i += direction * inc_x
+      j += direction * inc_y
     end
     return moves
+  end
+
+  def get_line_moves(origin_x, origin_y, inc_x, inc_y, start_square)
+    return line_moves(origin_x, origin_y, inc_x, inc_y, start_square, 1) + line_moves(origin_x, origin_y, inc_x, inc_y, start_square, -1)
   end
 
   def get_list_of_moves_for_pawns(piece)
@@ -275,11 +263,10 @@ class Board
       if piece_to_restore.nil?
         piece_taken = squares[to[0]][to[1] + inc_y]
         squares[to[0]][to[1] + inc_y] = nil
-        squares[from[0]][from[1]] = nil
       else
         squares[from[0]][from[1] + inc_y] = piece_to_restore
-        squares[from[0]][from[1]] = nil
       end
+      squares[from[0]][from[1]] = nil
     else
       piece_taken = squares[to[0]][to[1]]
       squares[from[0]][from[1]] = piece_to_restore
@@ -361,6 +348,34 @@ class Board
     squares[x][y].position_y = y
   end
 
+  def enable_enpassant(piece, origin)
+    if ((piece.class == WhitePawn) && ((piece.position_y - origin[1]).abs == 2))
+      if ((piece.position_x + 1 <= 7) && (squares[piece.position_x + 1][piece.position_y].class == BlackPawn))
+        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
+      end
+      if ((piece.position_x - 1 >= 0) && (squares[piece.position_x - 1][piece.position_y].class == BlackPawn))
+        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
+      end
+    end
+    if ((piece.class == BlackPawn) && ((piece.position_y - origin[1]).abs == 2))
+      if ((piece.position_x + 1 <= 7) && (squares[piece.position_x + 1][piece.position_y].class == WhitePawn))
+        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
+      end
+      if ((piece.position_x - 1 >= 0) && (squares[piece.position_x - 1][piece.position_y].class == WhitePawn))
+        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
+      end
+    end
+  end
+
+  def clear_enpassant(player)
+    klass = player.color == WHITE ? WhitePawn : BlackPawn
+    (0..7).each do |x|
+      (0..7).each do |y|
+        squares[x][y].enpassant_move = [] if (squares[x][y].class == klass)
+      end
+    end
+  end
+
   def get_piece_code(piece)
     return piece.color[0] + "_P" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
     return piece.color[0] + "_N" if piece.class == Knight
@@ -386,7 +401,6 @@ class Board
     end
     puts "\n    #{@table_lines[:l_b_corner]}#{(@table_lines[:h_line]*5 + @table_lines[:mid_bot_join])*7}#{@table_lines[:h_line]*5 + @table_lines[:r_b_corner]}"
   end
-
 end
 
 class Game
@@ -442,32 +456,9 @@ class Game
     puts "#{block*6}#{block*msg.length}#{block*7}"
   end
 
-  def clear_enpassant(player)
-    klass = player.color == WHITE ? WhitePawn : BlackPawn
-    (0..7).each do |x|
-      (0..7).each do |y|
-        board.squares[x][y].enpassant_move = [] if (board.squares[x][y].class == klass)
-      end
-    end
-  end
-
-  def enable_enpassant(piece, origin)
-    if ((piece.class == WhitePawn) && ((piece.position_y - origin[1]).abs == 2))
-      if ((piece.position_x + 1 <= 7) && (board.squares[piece.position_x + 1][piece.position_y].class == BlackPawn))
-        board.squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
-      end
-      if ((piece.position_x - 1 >= 0) && (board.squares[piece.position_x - 1][piece.position_y].class == BlackPawn))
-        board.squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
-      end
-    end
-    if ((piece.class == BlackPawn) && ((piece.position_y - origin[1]).abs == 2))
-      if ((piece.position_x + 1 <= 7) && (board.squares[piece.position_x + 1][piece.position_y].class == WhitePawn))
-        board.squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
-      end
-      if ((piece.position_x - 1 >= 0) && (board.squares[piece.position_x - 1][piece.position_y].class == WhitePawn))
-        board.squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
-      end
-    end
+  def print_board_and_message(msg)
+    board.display_board
+    print_message(msg)
   end
 
   #verify if the player's king or rooks moved or if any of the opponents rooks was taken in order to invalidate the corresponding encastling move
@@ -493,7 +484,7 @@ class Game
       elsif ((xy.length == 1) && (xy.match /s|S|q|Q/))
         return xy
       else
-        board.display_board ###########
+        board.display_board
         puts "\n\nInvalid input. Try again.\n\n\n"
       end
     end
@@ -502,7 +493,7 @@ class Game
   def player_turn(player)
     while true
       puts "\n#{player.order_player}, #{player.color}\'s turn"
-      board.display_board ###########
+      board.display_board
       puts "\nWrite 's' to save the game."
       puts "Write 'q' to exit the game without saving."
       puts "Choose the coordinates of the piece to move (xy),"
@@ -515,29 +506,25 @@ class Game
       end
       if xy_origin == "88"
         break if board.encastle_left(player)
-        board.display_board ###########
-        print_message("It is not possible to encastle with the queen's rook.")
+        print_board_and_message("It is not possible to encastle with the queen's rook.")
         next
       elsif xy_origin == "99"
         break if board.encastle_right(player)
-        board.display_board ###########
-        print_message("It is not possible to encastle with the king's rook.")
+        print_board_and_message("It is not possible to encastle with the king's rook.")
         next
       end
       coord_from = xy_origin.split('')
       coord_from = [coord_from[0].to_i, coord_from[1].to_i]
       if (board.squares[coord_from[0]][coord_from[1]].nil?)
-        board.display_board ###########
-        print_message("There's no piece to move at those coordinates. Try again.")
+        print_board_and_message("There's no piece to move at those coordinates. Try again.")
         next
       elsif (board.squares[coord_from[0]][coord_from[1]].color != player.color)
-        board.display_board ###########
-        print_message("You can't move your opponent's pieces. Try again.")
+        print_board_and_message("You can't move your opponent's pieces. Try again.")
         next
       end 
       piece = board.squares[coord_from[0]][coord_from[1]]
       board.find_possible_moves(piece)
-      board.display_board ###########
+      board.display_board
       puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
       xy_dest = get_xy
       coord_to = xy_dest.split('')
@@ -546,33 +533,29 @@ class Game
         piece_at_dest = board.make_move(coord_from, coord_to)
         opponent = (@player1 == player) ? @player2 : @player1
         if board.in_check?(player)
-          board.display_board ###########
-          print_message("You can't make that move. You'll be in check.")
+          print_board_and_message("You can't make that move. You'll be in check.")
           board.make_move(coord_to, coord_from, piece_at_dest)
           next
         end
-        clear_enpassant(player) #revoke the possibility of making en passant moves
-        enable_enpassant(piece, coord_from) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
+        board.clear_enpassant(player) #revoke the possibility of making en passant moves
+        board.enable_enpassant(piece, coord_from) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
         board.promote_pawn(coord_to) if (((piece.class == WhitePawn) || (piece.class == BlackPawn)) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
         if board.in_check?(opponent)
           if board.in_check_mate?(opponent)
-            board.display_board
-            print_message("Checkmate! " + player.color + " player has won the game.")
+            print_board_and_message("Checkmate! " + player.color + " player has won the game.")
             return true
           end
           print_message(opponent.color + " king is in check!")
         else #check for stalemate
           if board.in_check_mate?(opponent) #check if any possible move results in check while not being in check in the current position
-            board.display_board
-            print_message("The game ended in a stalemate.")
+            print_board_and_message("The game ended in a stalemate.")
             return true
           end
         end
         check_rooks_king_moved(piece, player, opponent, coord_from, coord_to)
         break
       else
-        board.display_board ###########
-        print_message("That move is not allowed. Choose again.")
+        print_board_and_message("That move is not allowed. Choose again.")
       end
     end
     nil
@@ -599,7 +582,6 @@ class Game
       @next_to_play = @player1.color
     end
   end
-
 end
 
 g = Game.new
