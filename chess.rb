@@ -2,6 +2,8 @@ require 'yaml'
 
 BLACK = "black"
 WHITE = "white"
+UNICODE = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u265b", "b_K" => "\u265a", "b_P" => "\u265f", "w_R" => "\u2656", "w_N" => "\u2658", "w_B" => "\u2657", "w_Q" => "\u2655", "w_K" => "\u2654", "w_P" => "\u2659"}
+TABLE_LINES = {:v_l_join => "\u251c", :mid_join => "\u253c", :v_r_join => "\u2524", :mid_top_join => "\u252c", :mid_bot_join => "\u2534", :l_t_corner => "\u250c", :r_t_corner => "\u2510", :l_b_corner => "\u2514", :r_b_corner => "\u2518", :v_line => "\u2502", :h_line => "\u2500"}
 
 class Player
   attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved
@@ -23,20 +25,11 @@ class Piece
   end
 end
 
-class BlackPawn < Piece
+class Pawn < Piece
   attr_accessor :hypo_moves, :enpassant_move
   def initialize(color)
     super(color)
-    @hypo_moves = [[0, 1], [0, 2], [1, 1], [-1, 1]]
-    @enpassant_move = []
-  end
-end
-
-class WhitePawn < Piece
-  attr_accessor :hypo_moves, :enpassant_move
-  def initialize(color)
-    super(color)
-    @hypo_moves = [[0, -1], [0, -2], [-1, -1], [1, -1]]
+    @hypo_moves = color == BLACK ? [[0, 1], [0, 2], [1, 1], [-1, 1]] : [[0, -1], [0, -2], [-1, -1], [1, -1]]
     @enpassant_move = []
   end
 end
@@ -78,8 +71,6 @@ end
 class Board
   attr_accessor :squares
   def initialize
-    @unicode = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u265b", "b_K" => "\u265a", "b_P" => "\u265f", "w_R" => "\u2656", "w_N" => "\u2658", "w_B" => "\u2657", "w_Q" => "\u2655", "w_K" => "\u2654", "w_P" => "\u2659"}
-    @table_lines = {:v_l_join => "\u251c", :mid_join => "\u253c", :v_r_join => "\u2524", :mid_top_join => "\u252c", :mid_bot_join => "\u2534", :l_t_corner => "\u250c", :r_t_corner => "\u2510", :l_b_corner => "\u2514", :r_b_corner => "\u2518", :v_line => "\u2502", :h_line => "\u2500"}
     @squares = []
     (0..7).each { @squares.push(Array.new(8, nil))}
   end
@@ -96,8 +87,8 @@ class Board
   end
 
   def create_pieces
-    (0..7).each {|pos| @squares[pos][1] = BlackPawn.new(BLACK)}
-    (0..7).each {|pos| @squares[pos][6] = WhitePawn.new(WHITE)}
+    (0..7).each {|pos| @squares[pos][1] = Pawn.new(BLACK)}
+    (0..7).each {|pos| @squares[pos][6] = Pawn.new(WHITE)}
     @squares[0][0] = Rook.new(BLACK)
     @squares[7][0] = Rook.new(BLACK)
     @squares[0][7] = Rook.new(WHITE)
@@ -141,7 +132,7 @@ class Board
     return line_moves(origin_x, origin_y, inc_x, inc_y, start_square, 1) + line_moves(origin_x, origin_y, inc_x, inc_y, start_square, -1)
   end
 
-  def get_list_of_moves_for_pawns(piece)
+  def find_possible_moves_pawn(piece)
     result = []
     piece.hypo_moves.each do |hm|
       x = piece.position_x + hm[0]
@@ -149,26 +140,13 @@ class Board
       next unless (x.between?(0, 7) && y.between?(0, 7))
       if ((squares[x][y] == nil) && (hm[0] == 0))
         result.push([x, y]) if (hm[1].abs == 1)
-        result.push([x, y]) if ((squares[x][y - 1] == nil) && (hm[1] == 2) && (piece.class == BlackPawn))
-        result.push([x, y]) if ((squares[x][y + 1] == nil) && (hm[1] == -2) && (piece.class == WhitePawn))
+        result.push([x, y]) if ((squares[x][y - 1] == nil) && (hm[1] == 2) && (piece.color == BLACK))
+        result.push([x, y]) if ((squares[x][y + 1] == nil) && (hm[1] == -2) && (piece.color == WHITE))
       end
       result.push([x, y]) if ((squares[x][y] != nil) && (squares[x][y].color != piece.color) && (hm[0] != 0))
     end
-    result
-  end
-
-  def find_possible_moves_black_pawn(piece)
-    piece.hypo_moves = [[0, 1], [1, 1], [-1, 1]] if piece.position_y != 1
-    aux = get_list_of_moves_for_pawns(piece)
-    aux.push(piece.enpassant_move) unless piece.enpassant_move.empty?
-    piece.possible_moves = aux
-  end
-
-  def find_possible_moves_white_pawn(piece)
-    piece.hypo_moves = [[0, -1], [1, -1], [-1, -1]] if piece.position_y != 6
-    aux = get_list_of_moves_for_pawns(piece)
-    aux.push(piece.enpassant_move) unless piece.enpassant_move.empty?
-    piece.possible_moves = aux
+    result.push(piece.enpassant_move) unless piece.enpassant_move.empty?
+    piece.possible_moves = result
   end
 
   def find_possible_moves_rook(piece)
@@ -194,11 +172,7 @@ class Board
   end
 
   def find_possible_moves_queen(piece)
-    horiz_moves = get_line_moves(piece.position_x, piece.position_y, 1, 0, piece)
-    vertical_moves = get_line_moves(piece.position_x, piece.position_y, 0, 1, piece)
-    diag1_moves = get_line_moves(piece.position_x, piece.position_y, 1, 1, piece)
-    diag2_moves = get_line_moves(piece.position_x, piece.position_y, 1, -1, piece)
-    piece.possible_moves = horiz_moves + vertical_moves + diag1_moves + diag2_moves
+    piece.possible_moves = find_possible_moves_bishop(piece) + find_possible_moves_rook(piece)
   end
 
   def find_possible_moves_king(piece)
@@ -215,10 +189,8 @@ class Board
     aux = []
     piece_class = piece.class.to_s
     case piece_class
-      when "BlackPawn"
-        aux = find_possible_moves_black_pawn(piece)
-      when "WhitePawn"
-        aux = find_possible_moves_white_pawn(piece)
+      when "Pawn"
+        aux = find_possible_moves_pawn(piece)
       when "Rook"
         aux = find_possible_moves_rook(piece)
       when "Bishop"
@@ -258,8 +230,8 @@ class Board
     piece_to_move.position_x = to[0]
     piece_to_move.position_y = to[1]
     piece_taken = nil
-    if (((piece_to_move.class == WhitePawn) || (piece_to_move.class == BlackPawn)) && ((piece_to_move.enpassant_move == from) || (piece_to_move.enpassant_move == to)))
-      inc_y = (piece_to_move.class == WhitePawn) ? 1 : -1
+    if ((piece_to_move.class == Pawn) && ((piece_to_move.enpassant_move == from) || (piece_to_move.enpassant_move == to)))
+      inc_y = (piece_to_move.color == WHITE) ? 1 : -1
       if piece_to_restore.nil?
         piece_taken = squares[to[0]][to[1] + inc_y]
         squares[to[0]][to[1] + inc_y] = nil
@@ -296,7 +268,7 @@ class Board
   def encastle_left(player) #encastle with the queen's rook
     player.color == WHITE ? line = 7 : line = 0
     return false if (player.king_moved || player.queen_rook_moved)
-    return false if !(squares[1][line].nil? && squares[2][line].nil? && squares[3][line].nil?)
+    return false if (squares[1][line] || squares[2][line] || squares[3][line]) #return false if there's any piece between king and rook
     [[2, line],[3, line],[4, line]].each do |pos|
       return false if in_check?(player, pos)
     end
@@ -309,7 +281,7 @@ class Board
   def encastle_right(player) #encastle with the king's rook
     player.color == WHITE ? line = 7 : line = 0
     return false if (player.king_moved || player.king_rook_moved)
-    return false if !(squares[5][line].nil? && squares[6][line].nil?)
+    return false if (squares[5][line] || squares[6][line]) #return false if there's any piece between king and rook
     [[4, line],[5, line],[6, line]].each do |pos|
       return false if in_check?(player, pos)
     end
@@ -348,58 +320,62 @@ class Board
     squares[x][y].position_y = y
   end
 
+  def opponent_pawn?(pawn, opponent_piece)
+    return true if (opponent_piece.class == Pawn) && (opponent_piece.color != pawn.color)
+    false
+  end
+
   def enable_enpassant(piece, origin)
-    if ((piece.class == WhitePawn) && ((piece.position_y - origin[1]).abs == 2))
-      if ((piece.position_x + 1 <= 7) && (squares[piece.position_x + 1][piece.position_y].class == BlackPawn))
-        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
+    if ((piece.class == Pawn) && ((piece.position_y - origin[1]).abs == 2))
+      y_inc = piece.color == WHITE ? -1 : 1
+      if ((piece.position_x + 1 <= 7) && (opponent_pawn?(piece, squares[piece.position_x + 1][piece.position_y])))
+        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] + y_inc]
       end
-      if ((piece.position_x - 1 >= 0) && (squares[piece.position_x - 1][piece.position_y].class == BlackPawn))
-        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] - 1]
-      end
-    end
-    if ((piece.class == BlackPawn) && ((piece.position_y - origin[1]).abs == 2))
-      if ((piece.position_x + 1 <= 7) && (squares[piece.position_x + 1][piece.position_y].class == WhitePawn))
-        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
-      end
-      if ((piece.position_x - 1 >= 0) && (squares[piece.position_x - 1][piece.position_y].class == WhitePawn))
-        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + 1]
+      if ((piece.position_x - 1 >= 0) && (opponent_pawn?(piece, squares[piece.position_x - 1][piece.position_y])))
+        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + y_inc]
       end
     end
   end
 
   def clear_enpassant(player)
-    klass = player.color == WHITE ? WhitePawn : BlackPawn
     (0..7).each do |x|
       (0..7).each do |y|
-        squares[x][y].enpassant_move = [] if (squares[x][y].class == klass)
+        squares[x][y].enpassant_move = [] if (squares[x][y].class == Pawn) && (squares[x][y].color == player.color)
       end
     end
   end
 
+  def update_pawn_hypo_moves(piece, coord_to, y_pos)
+    if piece.class == Pawn
+      squares[coord_to[0]][coord_to[1]].hypo_moves = [[0, -1], [1, -1], [-1, -1]] if (y_pos == 6) && (piece.color == WHITE)
+      squares[coord_to[0]][coord_to[1]].hypo_moves = [[0, 1], [1, 1], [-1, 1]] if (y_pos == 1) && (piece.color == BLACK)
+    end
+  end
+
   def get_piece_code(piece)
-    return piece.color[0] + "_P" if ((piece.class == WhitePawn) || (piece.class == BlackPawn))
+    return piece.color[0] + "_P" if piece.class == Pawn
     return piece.color[0] + "_N" if piece.class == Knight
     return piece.color[0] + "_" + piece.class.to_s[0]
   end
 
   def display_board
     puts "\n    x  0     1     2     3     4     5     6     7 "
-    puts " y  #{@table_lines[:l_t_corner]}#{(@table_lines[:h_line]*5 + @table_lines[:mid_top_join])*7}#{@table_lines[:h_line]*5 + @table_lines[:r_t_corner]}"
+    puts " y  #{TABLE_LINES[:l_t_corner]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_top_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:r_t_corner]}"
     (0..7).each do |row|    
-      print "    #{@table_lines[:v_line]}"
+      print "    #{TABLE_LINES[:v_line]}"
       (0..7).each do |col|
-          @squares[col][row].nil? ? print("    "): print("  " + @unicode[get_piece_code(@squares[col][row])] + " ")
-          print " #{@table_lines[:v_line]}"
+          @squares[col][row].nil? ? print("    "): print("  " + UNICODE[get_piece_code(@squares[col][row])] + " ")
+          print " #{TABLE_LINES[:v_line]}"
       end
       puts
-      print " #{row}  #{@table_lines[:v_line]}"
+      print " #{row}  #{TABLE_LINES[:v_line]}"
       (0..7).each do |col|
           @squares[col][row].nil? ? print("    "): print(" " + get_piece_code(@squares[col][row]))
-          print " #{@table_lines[:v_line]}"
+          print " #{TABLE_LINES[:v_line]}"
       end
-      puts "\n    #{@table_lines[:v_l_join]}#{(@table_lines[:h_line]*5 + @table_lines[:mid_join])*7}#{@table_lines[:h_line]*5 + @table_lines[:v_r_join]}" if !(row == 7)
+      puts "\n    #{TABLE_LINES[:v_l_join]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:v_r_join]}" if !(row == 7)
     end
-    puts "\n    #{@table_lines[:l_b_corner]}#{(@table_lines[:h_line]*5 + @table_lines[:mid_bot_join])*7}#{@table_lines[:h_line]*5 + @table_lines[:r_b_corner]}"
+    puts "\n    #{TABLE_LINES[:l_b_corner]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_bot_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:r_b_corner]}"
   end
 end
 
@@ -415,7 +391,7 @@ class Game
     Dir.mkdir("saved_games") if !Dir.exists?("saved_games")
     if @game_file.nil?
       list_files = Dir["saved_games/*"]
-      list_ids = list_files.collect { |fname| fname.scan(/\d/).join.to_i }
+      list_ids = list_files.collect { |fname| fname.scan(/\d+/).join.to_i }
       new_id = list_ids.empty? ? 1 : list_ids.max + 1
       @game_file = "saved_games/game#{new_id}.txt"
     end
@@ -425,7 +401,7 @@ class Game
 
   def load_game 
     list_files = Dir["saved_games/*"]
-    list_ids = list_files.collect { |fname| fname.scan(/\d/).join.to_i }
+    list_ids = list_files.collect { |fname| fname.scan(/\d+/).join.to_i }
     if list_ids.empty?
       puts "There are no saved games to be loaded"
       return false
@@ -539,7 +515,8 @@ class Game
         end
         board.clear_enpassant(player) #revoke the possibility of making en passant moves
         board.enable_enpassant(piece, coord_from) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
-        board.promote_pawn(coord_to) if (((piece.class == WhitePawn) || (piece.class == BlackPawn)) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
+        board.promote_pawn(coord_to) if ((piece.class == Pawn) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
+        board.update_pawn_hypo_moves(piece, coord_to, coord_from[1])
         if board.in_check?(opponent)
           if board.in_check_mate?(opponent)
             print_board_and_message("Checkmate! " + player.color + " player has won the game.")

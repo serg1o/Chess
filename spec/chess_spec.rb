@@ -12,10 +12,10 @@ describe Game do
       context "with no pieces in front" do
         before(:each) do
           @board = Board.new
-          @piece = WhitePawn.new(WHITE)
+          @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
           @board.update_positions
-          @board.find_possible_moves_white_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
         
@@ -39,11 +39,11 @@ describe Game do
       context "with pieces in front" do
         before(:each) do
           @board = Board.new
-          @piece = WhitePawn.new(WHITE)
+          @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
           @board.squares[4][5] = Knight.new(BLACK)
           @board.update_positions
-          @board.find_possible_moves_white_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
 
@@ -60,15 +60,15 @@ describe Game do
       context "with opponent piece two squares in front" do
         before(:each) do
           @board = Board.new
-          @piece = WhitePawn.new(WHITE)
+          @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
           @board.squares[4][4] = Knight.new(BLACK)
-          @piece2 = BlackPawn.new(BLACK)
+          @piece2 = Pawn.new(BLACK)
           @board.squares[0][1] = @piece2
           @board.squares[0][3] = Knight.new(WHITE)
           @board.update_positions
-          @board.find_possible_moves_white_pawn(@piece)
-          @board.find_possible_moves_black_pawn(@piece2)
+          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece2)
           @game = Game.new(@board)
         end
 
@@ -84,13 +84,13 @@ describe Game do
       context "with pieces in the first square on a diagonal" do
         before(:each) do
           @board = Board.new
-          @piece = WhitePawn.new(WHITE)
+          @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
           @board.squares[5][5] = Knight.new(BLACK)
           @board.squares[3][5] = Queen.new(WHITE)
           @board.squares[3][7] = Bishop.new(BLACK)
           @board.update_positions
-          @board.find_possible_moves_white_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
 
@@ -110,11 +110,26 @@ describe Game do
       context "after having moved once" do
         before(:each) do
           @board = Board.new
-          @piece = WhitePawn.new(WHITE)
-          @board.squares[4][5] = @piece
+          @piece = Pawn.new(WHITE)
+          @board.squares[4][7] = King.new(WHITE)
+          @board.squares[4][0] = King.new(BLACK)
+          @board.squares[4][6] = @piece
           @board.update_positions
-          @board.find_possible_moves_white_pawn(@piece)
           @game = Game.new(@board)
+          @game.player1 = Player.new(WHITE, "player1")
+          @game.player2 = Player.new(BLACK, "player2")
+          allow(@game).to receive(:gets) do
+            @index ||= 0
+            moves = ["46", "45"]
+            if @index < 2
+              resp = moves[@index]
+              @index += 1
+            else
+              resp = "q"
+            end
+            resp
+          end
+          @game.player_turn(@game.player1)
         end
         
         it "moves 1 squares" do
@@ -140,10 +155,10 @@ describe Game do
       context "with no pieces in front" do
         before(:each) do
           @board = Board.new
-          @piece = BlackPawn.new(BLACK)
+          @piece = Pawn.new(BLACK)
           @board.squares[4][1] = @piece
           @board.update_positions
-          @board.find_possible_moves_black_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
         
@@ -167,11 +182,11 @@ describe Game do
       context "with pieces in front" do
         before(:each) do
           @board = Board.new
-          @piece = BlackPawn.new(BLACK)
+          @piece = Pawn.new(BLACK)
           @board.squares[4][1] = @piece
           @board.squares[4][2] = Knight.new(WHITE)
           @board.update_positions
-          @board.find_possible_moves_black_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
 
@@ -188,13 +203,13 @@ describe Game do
       context "with pieces in the first square on a diagonal" do
         before(:each) do
           @board = Board.new
-          @piece = BlackPawn.new(BLACK)
+          @piece = Pawn.new(BLACK)
           @board.squares[4][1] = @piece
           @board.squares[3][2] = Knight.new(WHITE)
           @board.squares[5][2] = Queen.new(BLACK)
           @board.squares[3][0] = Bishop.new(WHITE)
           @board.update_positions
-          @board.find_possible_moves_black_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece)
           @game = Game.new(@board)
         end
 
@@ -214,11 +229,26 @@ describe Game do
       context "after having moved once" do
         before(:each) do
           @board = Board.new
-          @piece = BlackPawn.new(BLACK)
-          @board.squares[4][3] = @piece
+          @piece = Pawn.new(BLACK)
+          @board.squares[4][7] = King.new(WHITE)
+          @board.squares[4][0] = King.new(BLACK)
+          @board.squares[4][1] = @piece
           @board.update_positions
-          @board.find_possible_moves_black_pawn(@piece)
           @game = Game.new(@board)
+          @game.player1 = Player.new(WHITE, "player1")
+          @game.player2 = Player.new(BLACK, "player2")
+          allow(@game).to receive(:gets) do
+            @index ||= 0
+            moves = ["41", "43"]
+            if @index < 2
+              resp = moves[@index]
+              @index += 1
+            else
+              resp = "q"
+            end
+            resp
+          end
+          @game.player_turn(@game.player2)
         end
         
         it "moves 1 squares" do
@@ -246,7 +276,7 @@ describe Game do
         @piece = Rook.new(WHITE)
         @board.squares[4][3] = @piece
         @board.squares[4][1] = Queen.new(BLACK)
-        @board.squares[2][3] = WhitePawn.new(WHITE)
+        @board.squares[2][3] = Pawn.new(WHITE)
         @board.update_positions
         @board.find_possible_moves_rook(@piece)
         @game = Game.new(@board)
@@ -291,7 +321,7 @@ describe Game do
         @piece = Bishop.new(WHITE)
         @board.squares[4][3] = @piece
         @board.squares[6][1] = Queen.new(BLACK)
-        @board.squares[6][5] = WhitePawn.new(WHITE)
+        @board.squares[6][5] = Pawn.new(WHITE)
         @board.update_positions
         @board.find_possible_moves_bishop(@piece)
         @game = Game.new(@board)
@@ -340,8 +370,8 @@ describe Game do
         @piece = Queen.new(BLACK)
         @board.squares[4][3] = @piece
         @board.squares[6][1] = King.new(BLACK)
-        @board.squares[6][5] = WhitePawn.new(WHITE)
-        @board.squares[4][2] = BlackPawn.new(BLACK)
+        @board.squares[6][5] = Pawn.new(WHITE)
+        @board.squares[4][2] = Pawn.new(BLACK)
         @board.squares[3][3] = Bishop.new(WHITE)
         @board.update_positions
         @board.find_possible_moves_queen(@piece)
@@ -416,7 +446,7 @@ describe Game do
         @board.squares[4][3] = @piece
         @board.squares[5][2] = Queen.new(BLACK)
         @board.squares[5][4] = Rook.new(WHITE)
-        @board.squares[4][2] = BlackPawn.new(BLACK)
+        @board.squares[4][2] = Pawn.new(BLACK)
         @board.squares[3][3] = Bishop.new(WHITE)
         @board.update_positions
         @board.find_possible_moves_king(@piece)
@@ -459,7 +489,7 @@ describe Game do
         @piece = Knight.new(BLACK)
         @board.squares[1][5] = @piece
         @board.squares[2][7] = King.new(BLACK)
-        @board.squares[2][4] = BlackPawn.new(BLACK)
+        @board.squares[2][4] = Pawn.new(BLACK)
         @board.squares[0][3] = Bishop.new(WHITE)
         @board.update_positions
         @board.find_possible_moves_knight(@piece)
@@ -1298,8 +1328,8 @@ describe Game do
       @board = Board.new
       @board.squares[7][3] = King.new(BLACK)
       @board.squares[4][7] = King.new(WHITE)
-      @board.squares[7][4] = BlackPawn.new(BLACK)
-      @board.squares[6][6] = WhitePawn.new(WHITE)
+      @board.squares[7][4] = Pawn.new(BLACK)
+      @board.squares[6][6] = Pawn.new(WHITE)
       @board.squares[6][1] = Queen.new(WHITE)
       @board.update_positions
       @game = Game.new(@board)
@@ -1333,8 +1363,8 @@ describe Game do
 
     context "when pawn to be taken is to the left" do
       before do
-        @game.board.squares[5][1] = BlackPawn.new(BLACK)
-        @game.board.squares[4][3] = WhitePawn.new(WHITE)
+        @game.board.squares[5][1] = Pawn.new(BLACK)
+        @game.board.squares[4][3] = Pawn.new(WHITE)
         @game.board.update_positions
       end
 
@@ -1361,8 +1391,8 @@ describe Game do
 
     context "when pawn to be taken is to the right" do
       before do
-        @game.board.squares[3][1] = BlackPawn.new(BLACK)
-        @game.board.squares[4][3] = WhitePawn.new(WHITE)
+        @game.board.squares[3][1] = Pawn.new(BLACK)
+        @game.board.squares[4][3] = Pawn.new(WHITE)
         @game.board.update_positions
       end
 
@@ -1389,8 +1419,8 @@ describe Game do
 
     context "when pawn is not taken immediately after having moved two squares" do
       before do
-        @game.board.squares[3][1] = BlackPawn.new(BLACK)
-        @game.board.squares[4][3] = WhitePawn.new(WHITE)
+        @game.board.squares[3][1] = Pawn.new(BLACK)
+        @game.board.squares[4][3] = Pawn.new(WHITE)
         @game.board.update_positions
       end
 
@@ -1423,7 +1453,7 @@ describe Game do
    context "when the piece that made a move of two squares is not a pawn" do
       before do
         @game.board.squares[5][1] = Rook.new(BLACK)
-        @game.board.squares[4][3] = WhitePawn.new(WHITE)
+        @game.board.squares[4][3] = Pawn.new(WHITE)
         @game.board.update_positions
        
       end
@@ -1449,8 +1479,8 @@ describe Game do
 
     context "when pawn to be taken only moved one square" do
       before do
-        @game.board.squares[5][2] = BlackPawn.new(BLACK)
-        @game.board.squares[4][3] = WhitePawn.new(WHITE)
+        @game.board.squares[5][2] = Pawn.new(BLACK)
+        @game.board.squares[4][3] = Pawn.new(WHITE)
         @game.board.update_positions
       end
 
