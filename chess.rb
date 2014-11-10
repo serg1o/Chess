@@ -6,10 +6,11 @@ UNICODE = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u
 TABLE_LINES = {:v_l_join => "\u251c", :mid_join => "\u253c", :v_r_join => "\u2524", :mid_top_join => "\u252c", :mid_bot_join => "\u2534", :l_t_corner => "\u250c", :r_t_corner => "\u2510", :l_b_corner => "\u2514", :r_b_corner => "\u2518", :v_line => "\u2502", :h_line => "\u2500"}
 
 class Player
-  attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved
+  attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved, :computer_player
   def initialize(color, order)
     @order_player = order #player1, player2
     @color = color
+    @computer_player = false
     #for checking if encastling is possible
     @queen_rook_moved = false
     @king_rook_moved = false
@@ -291,7 +292,7 @@ class Board
     true
   end
 
-  def promote_pawn(at_pos)
+  def promote_pawn(at_pos, current_player)
     display_board
     x = at_pos[0]
     y = at_pos[1]
@@ -300,10 +301,13 @@ class Board
     puts "r - Rook"
     puts "n - Knight"
     puts "b - Bishop"
-    choice = gets.chomp.downcase
-    while ((choice.length != 1) || !(choice.match /q|r|n|b/))
-      puts "Invalid choice. Try again."
+    choice = "q" #computer player always promotes to queen
+    if !current_player.computer_player
       choice = gets.chomp.downcase
+      while ((choice.length != 1) || !(choice.match /q|r|n|b/))
+        puts "Invalid choice. Try again."
+        choice = gets.chomp.downcase
+      end
     end
     color = (y == 7) ? BLACK : WHITE
     case choice
@@ -353,7 +357,6 @@ class Board
   end
 
   def get_piece_code(piece)
-    return piece.color[0] + "_P" if piece.class == Pawn
     return piece.color[0] + "_N" if piece.class == Knight
     return piece.color[0] + "_" + piece.class.to_s[0]
   end
@@ -443,13 +446,90 @@ class Game
       player.king_moved = true
     else
       player_first_rank = (player.color == BLACK) ? 0 : 7
-      opponent_first_rank = (player.color == BLACK) ? 7 : 0
+      opponent_first_rank = (player_first_rank - 7).abs
       player.queen_rook_moved = true if coord_from == [0, player_first_rank]
       player.king_rook_moved = true if coord_from == [7, player_first_rank]
       # case when player takes one of the opponent's rooks at their initial positions
       opponent.queen_rook_moved = true if coord_to == [0, opponent_first_rank]
       opponent.king_rook_moved = true if coord_to == [7, opponent_first_rank]
     end
+  end
+
+  def get_moves_and_score(mock_board, player, opponent)
+    list_moves = []
+    (0..7).each do |x|
+      (0..7).each do |y|
+        if ((mock_board.squares[x][y] != nil) && (mock_board.squares[x][y].color == player.color))
+          p_moves = mock_board.find_possible_moves(mock_board.squares[x][y])
+          p_moves.each do |m|
+            p_taken = mock_board.make_move([x, y], m)
+            score = 0
+            if p_taken != nil
+              p_taken_class = p_taken.class.to_s
+              case p_taken_class
+              when "Pawn"
+                score = 1   
+              when "Rook"
+                score = 4  
+              when "Bishop"
+                score = 3  
+              when "Knight"
+                score = 3  
+              when "Queen"
+                score = 5
+              end
+              score += 1 if mock_board.in_check?(opponent)
+            end
+            list_moves.push([score,[x, y], m]) if !(mock_board.in_check?(player))
+            mock_board.make_move(m, [x, y], p_taken)
+          end
+        end
+      end
+    end
+    list_moves
+  end
+
+  def get_max_score(list)
+    max = 0
+    list.each { |elem| max = elem[0] if (elem[0] > max) }
+    max
+  end
+
+  def get_computer_move(board, player, opponent)
+    mock_board = board.dup #clone?
+    list_moves = get_moves_and_score(mock_board, player, opponent)
+    aux_list = []
+    m_board = mock_board.dup
+    opp = opponent.dup
+    plr = player.dup  
+    list_moves.each do |m|
+      p_taken = m_board.make_move(m[1], m[2])
+      subtract_score = get_max_score(get_moves_and_score(m_board, opp, plr))
+      m_board.make_move(m[2], m[1], p_taken)
+      aux_elem = m
+      aux_elem[0] -= subtract_score
+      aux_list.push(aux_elem)
+    end
+    aux_list.shuffle!
+    pc_move = [aux_list.first[1], aux_list.first[2]]
+    pc_move_score = aux_list.first[0]
+    aux_list.each do |mv|
+      if mv[0] > pc_move_score
+        pc_move = [mv[1], mv[2]]
+        pc_move_score = mv[0]
+      end
+    end
+    return [pc_move[0][0].to_s + pc_move[0][1].to_s, pc_move[1][0].to_s + pc_move[1][1].to_s]
+  end
+
+  def count_remaining_pieces
+    count = 0
+    (0..7).each do |x|
+      (0..7).each do |y|
+        count += 1 if board.squares[x][y]
+      end
+    end
+    count
   end
 
   def get_xy
@@ -467,6 +547,11 @@ class Game
   end
 
   def player_turn(player)
+    if count_remaining_pieces < 3
+      print_message("The game ended in a tie.")
+      return true
+    end
+    opponent = (@player1 == player) ? @player2 : @player1
     while true
       puts "\n#{player.order_player}, #{player.color}\'s turn"
       board.display_board
@@ -474,7 +559,14 @@ class Game
       puts "Write 'q' to exit the game without saving."
       puts "Choose the coordinates of the piece to move (xy),"
       puts "or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook."
-      xy_origin = get_xy
+      sleep(1) if player.computer_player && opponent.computer_player
+      comp_move = []
+      if player.computer_player
+        comp_move = get_computer_move(board, player.dup, opponent.dup)
+        xy_origin = comp_move[0]
+      else
+        xy_origin = get_xy
+      end
       return true if xy_origin.downcase == "q"
       if xy_origin.downcase == "s"
         save_game
@@ -502,12 +594,16 @@ class Game
       board.find_possible_moves(piece)
       board.display_board
       puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
-      xy_dest = get_xy
+      if player.computer_player
+        xy_dest = comp_move[1]
+      else
+        xy_dest = get_xy
+      end
       coord_to = xy_dest.split('')
       coord_to = [coord_to[0].to_i, coord_to[1].to_i]
       if piece.possible_moves.include? ([coord_to[0], coord_to[1]])    
         piece_at_dest = board.make_move(coord_from, coord_to)
-        opponent = (@player1 == player) ? @player2 : @player1
+        
         if board.in_check?(player)
           print_board_and_message("You can't make that move. You'll be in check.")
           board.make_move(coord_to, coord_from, piece_at_dest)
@@ -515,7 +611,7 @@ class Game
         end
         board.clear_enpassant(player) #revoke the possibility of making en passant moves
         board.enable_enpassant(piece, coord_from) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
-        board.promote_pawn(coord_to) if ((piece.class == Pawn) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
+        board.promote_pawn(coord_to, player) if ((piece.class == Pawn) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
         board.update_pawn_hypo_moves(piece, coord_to, coord_from[1])
         if board.in_check?(opponent)
           if board.in_check_mate?(opponent)
@@ -538,6 +634,33 @@ class Game
     nil
   end
 
+  def select_game_mode
+    puts "Choose game mode:"
+    puts "a - Both players are humans"
+    puts "b - Player1 (white) is human and player2 (black) is the computer"
+    puts "c - Player2 (black) is human and player1 (white) is the computer"
+    puts "d - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)"
+    choice = gets.chomp.downcase
+    while ((choice.length != 1) || !(choice.match /a|b|c|d/))
+      puts "Invalid choice. Try again."
+      choice = gets.chomp.downcase
+    end
+    case choice
+      when "a"
+        @player1.computer_player = false
+        @player2.computer_player = false
+      when "b"
+        @player1.computer_player = false
+        @player2.computer_player = true
+      when "c"
+        @player1.computer_player = true
+        @player2.computer_player = false
+      when "d"
+        @player1.computer_player = true
+        @player2.computer_player = true
+    end
+  end
+
   def menu
     @player1 = Player.new(WHITE, "player1")
     @player2 = Player.new(BLACK, "player2")
@@ -550,7 +673,11 @@ class Game
           return if player_turn(@player2)
           @next_to_play = @player1.color
         end
+      else
+        select_game_mode
       end
+    else
+      select_game_mode
     end
     loop do
       break if player_turn(@player1)
