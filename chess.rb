@@ -76,13 +76,19 @@ class Board
     (0..7).each { @squares.push(Array.new(8, nil))}
   end
 
-  def update_positions
+  def squares_iterator
     (0..7).each do |x|
       (0..7).each do |y|
-        if !squares[x][y].nil?
-          squares[x][y].position_x = x
-          squares[x][y].position_y = y
-        end
+        yield(x, y)
+      end
+    end
+  end
+
+  def update_positions
+    squares_iterator do |x, y|
+      if !squares[x][y].nil?
+        squares[x][y].position_x = x
+        squares[x][y].position_y = y
       end
     end
   end
@@ -207,21 +213,17 @@ class Board
   end
 
   def find_king_coordinates(player) 
-    (0..7).each do |x|
-      (0..7).each do |y|
-        return [x, y] if (!squares[x][y].nil? && (squares[x][y].class == King) && (player.color == squares[x][y].color))
-      end
+    squares_iterator do |x, y|
+      return [x, y] if (!squares[x][y].nil? && (squares[x][y].class == King) && (player.color == squares[x][y].color))
     end
   end
 
   def in_check?(player, position = nil) #check if player is in check
     position ||= find_king_coordinates(player)
-    (0..7).each do |x|
-      (0..7).each do |y|
-        next if (squares[x][y].nil? || (player.color == squares[x][y].color))
-        poss_moves = find_possible_moves(squares[x][y])
-        return true if poss_moves.include?(position)
-      end
+    squares_iterator do |x, y|
+      next if (squares[x][y].nil? || (player.color == squares[x][y].color))
+      poss_moves = find_possible_moves(squares[x][y])
+      return true if poss_moves.include?(position)
     end
     return false
   end
@@ -249,18 +251,16 @@ class Board
   end
 
   def in_check_mate?(player)
-    (0..7).each do |x|
-      (0..7).each do |y|
-        next if (squares[x][y].nil? || (player.color != squares[x][y].color))
-        poss_moves = find_possible_moves(squares[x][y])
-        poss_moves.each do |mov|
-          coord_to = mov
-          coord_from = [x, y]
-          taken_piece = make_move(coord_from, coord_to)
-          temp = in_check?(player)
-          make_move(coord_to, coord_from, taken_piece)
-          return false if !temp
-        end
+    squares_iterator do |x, y|
+      next if (squares[x][y].nil? || (player.color != squares[x][y].color))
+      poss_moves = find_possible_moves(squares[x][y])
+      poss_moves.each do |mov|
+        coord_to = mov
+        coord_from = [x, y]
+        taken_piece = make_move(coord_from, coord_to)
+        temp = in_check?(player)
+        make_move(coord_to, coord_from, taken_piece)
+        return false if !temp
       end
     end
     return true
@@ -342,10 +342,8 @@ class Board
   end
 
   def clear_enpassant(player)
-    (0..7).each do |x|
-      (0..7).each do |y|
-        squares[x][y].enpassant_move = [] if (squares[x][y].class == Pawn) && (squares[x][y].color == player.color)
-      end
+    squares_iterator do |x, y|
+      squares[x][y].enpassant_move = [] if (squares[x][y].class == Pawn) && (squares[x][y].color == player.color)
     end
   end
 
@@ -354,6 +352,12 @@ class Board
       squares[coord_to[0]][coord_to[1]].hypo_moves = [[0, -1], [1, -1], [-1, -1]] if (y_pos == 6) && (piece.color == WHITE)
       squares[coord_to[0]][coord_to[1]].hypo_moves = [[0, 1], [1, 1], [-1, 1]] if (y_pos == 1) && (piece.color == BLACK)
     end
+  end
+
+  def count_remaining_pieces
+    count = 0
+    squares_iterator { |x, y| count += 1 if squares[x][y] }
+    count
   end
 
   def get_piece_code(piece)
@@ -446,7 +450,7 @@ class Game
       player.king_moved = true
     else
       player_first_rank = (player.color == BLACK) ? 0 : 7
-      opponent_first_rank = (player_first_rank - 7).abs
+      opponent_first_rank = 7 - player_first_rank
       player.queen_rook_moved = true if coord_from == [0, player_first_rank]
       player.king_rook_moved = true if coord_from == [7, player_first_rank]
       # case when player takes one of the opponent's rooks at their initial positions
@@ -457,32 +461,34 @@ class Game
 
   def get_moves_and_score(mock_board, player, opponent)
     list_moves = []
-    (0..7).each do |x|
-      (0..7).each do |y|
-        if ((mock_board.squares[x][y] != nil) && (mock_board.squares[x][y].color == player.color))
-          p_moves = mock_board.find_possible_moves(mock_board.squares[x][y])
-          p_moves.each do |m|
-            p_taken = mock_board.make_move([x, y], m)
-            score = 0
-            if p_taken != nil
-              p_taken_class = p_taken.class.to_s
-              case p_taken_class
-              when "Pawn"
-                score = 1   
-              when "Rook"
-                score = 4  
-              when "Bishop"
-                score = 3  
-              when "Knight"
-                score = 3  
-              when "Queen"
-                score = 5
-              end
-              score += 1 if mock_board.in_check?(opponent)
+    mock_board.squares_iterator do |x, y|
+      if ((mock_board.squares[x][y] != nil) && (mock_board.squares[x][y].color == player.color))
+        p_moves = mock_board.find_possible_moves(mock_board.squares[x][y])
+        p_moves.each do |m|
+          p_taken = mock_board.make_move([x, y], m)
+          score = 0
+          if p_taken != nil
+            p_taken_class = p_taken.class.to_s
+            case p_taken_class
+            when "Pawn"
+              score = 1   
+            when "Rook"
+              score = 4  
+            when "Bishop"
+              score = 3  
+            when "Knight"
+              score = 3  
+            when "Queen"
+              score = 5
             end
-            list_moves.push([score,[x, y], m]) if !(mock_board.in_check?(player))
-            mock_board.make_move(m, [x, y], p_taken)
+            opponent_in_check = mock_board.in_check?(opponent)
+            opponent_in_check_mate = mock_board.in_check_mate?(opponent) && opponent_in_check
+            score += 1 if opponent_in_check && !opponent_in_check_mate
+            score += 10 if opponent_in_check && opponent_in_check_mate
+            score -= 10 if !opponent_in_check && opponent_in_check_mate
           end
+          list_moves.push([score,[x, y], m]) if !(mock_board.in_check?(player))
+          mock_board.make_move(m, [x, y], p_taken)
         end
       end
     end
@@ -519,17 +525,7 @@ class Game
         pc_move_score = mv[0]
       end
     end
-    return [pc_move[0][0].to_s + pc_move[0][1].to_s, pc_move[1][0].to_s + pc_move[1][1].to_s]
-  end
-
-  def count_remaining_pieces
-    count = 0
-    (0..7).each do |x|
-      (0..7).each do |y|
-        count += 1 if board.squares[x][y]
-      end
-    end
-    count
+    return [pc_move[0].join, pc_move[1].join]
   end
 
   def get_xy
@@ -547,7 +543,7 @@ class Game
   end
 
   def player_turn(player)
-    if count_remaining_pieces < 3
+    if board.count_remaining_pieces < 3
       print_message("The game ended in a tie.")
       return true
     end
@@ -602,8 +598,7 @@ class Game
       coord_to = xy_dest.split('')
       coord_to = [coord_to[0].to_i, coord_to[1].to_i]
       if piece.possible_moves.include? ([coord_to[0], coord_to[1]])    
-        piece_at_dest = board.make_move(coord_from, coord_to)
-        
+        piece_at_dest = board.make_move(coord_from, coord_to)    
         if board.in_check?(player)
           print_board_and_message("You can't make that move. You'll be in check.")
           board.make_move(coord_to, coord_from, piece_at_dest)
