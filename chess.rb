@@ -3,7 +3,8 @@ require 'yaml'
 BLACK = "black"
 WHITE = "white"
 UNICODE = {"b_R" => "\u265c", "b_N" => "\u265e", "b_B" => "\u265d", "b_Q" => "\u265b", "b_K" => "\u265a", "b_P" => "\u265f", "w_R" => "\u2656", "w_N" => "\u2658", "w_B" => "\u2657", "w_Q" => "\u2655", "w_K" => "\u2654", "w_P" => "\u2659"}
-TABLE_LINES = {:v_l_join => "\u251c", :mid_join => "\u253c", :v_r_join => "\u2524", :mid_top_join => "\u252c", :mid_bot_join => "\u2534", :l_t_corner => "\u250c", :r_t_corner => "\u2510", :l_b_corner => "\u2514", :r_b_corner => "\u2518", :v_line => "\u2502", :h_line => "\u2500"}
+TABLE_LINES = { v_l_join: "\u251c", mid_join: "\u253c", v_r_join: "\u2524", mid_top_join: "\u252c", mid_bot_join: "\u2534", l_t_corner: "\u250c", r_t_corner: "\u2510", l_b_corner: "\u2514", r_b_corner: "\u2518", v_line: "\u2502", h_line: "\u2500"}
+SCORES = { "Queen" => 9, "Rook" => 5, "Bishop" => 3, "Knight" => 3, "Pawn" => 1 }
 
 class Player
   attr_accessor :color, :order_player, :queen_rook_moved, :king_rook_moved, :king_moved, :computer_player
@@ -72,8 +73,7 @@ end
 class Board
   attr_accessor :squares
   def initialize
-    @squares = []
-    (0..7).each { @squares.push(Array.new(8, nil))}
+    @squares = Array.new(8) { Array.new(8) }
   end
 
   def squares_iterator
@@ -258,9 +258,7 @@ class Board
     player.color == WHITE ? line = 7 : line = 0
     return false if (player.king_moved || player.queen_rook_moved)
     return false if (squares[1][line] || squares[2][line] || squares[3][line]) #return false if there's any piece between king and rook
-    [[2, line],[3, line],[4, line]].each do |pos|
-      return false if in_check?(player, pos)
-    end
+    [[2, line],[3, line],[4, line]].each { |pos| return false if in_check?(player, pos) }
     make_move([4, line], [2, line]) #move king
     make_move([0, line], [3, line]) #move rook
     player.king_moved = true
@@ -271,9 +269,7 @@ class Board
     player.color == WHITE ? line = 7 : line = 0
     return false if (player.king_moved || player.king_rook_moved)
     return false if (squares[5][line] || squares[6][line]) #return false if there's any piece between king and rook
-    [[4, line],[5, line],[6, line]].each do |pos|
-      return false if in_check?(player, pos)
-    end
+    [[4, line],[5, line],[6, line]].each { |pos| return false if in_check?(player, pos) }
     make_move([4, line], [6, line]) #move king
     make_move([7, line], [5, line]) #move rook
     player.king_moved = true
@@ -457,18 +453,7 @@ class Game
           score = 0
           if p_taken != nil
             p_taken_class = p_taken.class.to_s
-            case p_taken_class
-            when "Pawn"
-              score = 1   
-            when "Rook"
-              score = 4  
-            when "Bishop"
-              score = 3  
-            when "Knight"
-              score = 3  
-            when "Queen"
-              score = 5
-            end
+            score = SCORES[p_taken_class]
             opponent_in_check = mock_board.in_check?(opponent)
             opponent_in_check_mate = mock_board.in_check_mate?(opponent) && opponent_in_check
             score += 1 if opponent_in_check && !opponent_in_check_mate
@@ -519,9 +504,7 @@ class Game
   def get_xy
     while true
       xy = gets.chomp
-      if ((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/))
-        return xy
-      elsif ((xy.length == 1) && (xy.match /s|S|q|Q/))
+      if (((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/)) || ((xy.length == 1) && (xy.match /s|S|q|Q/)))
         return xy
       else
         board.display_board
