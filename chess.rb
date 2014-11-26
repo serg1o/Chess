@@ -168,7 +168,7 @@ class Board
     piece.possible_moves = diag1_moves + diag2_moves
   end
 
-  def find_possible_moves_knight(piece)
+  def find_possible_moves_generic(piece)
     result = []
     piece.hypo_moves.each do |hm|
       x = piece.position_x + hm[0]
@@ -182,16 +182,6 @@ class Board
     piece.possible_moves = find_possible_moves_bishop(piece) + find_possible_moves_rook(piece)
   end
 
-  def find_possible_moves_king(piece)
-    result = []
-    piece.hypo_moves.each do |hm|
-      x = piece.position_x + hm[0]
-      y = piece.position_y + hm[1]
-      result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && ((squares[x][y] == nil) || (squares[x][y].color != piece.color)))
-    end
-    piece.possible_moves = result
-  end
-
   def find_possible_moves(piece)
     aux = []
     piece_class = piece.class.to_s
@@ -202,12 +192,10 @@ class Board
         aux = find_possible_moves_rook(piece)
       when "Bishop"
         aux = find_possible_moves_bishop(piece)
-      when "Knight"
-        aux = find_possible_moves_knight(piece)
       when "Queen"
         aux = find_possible_moves_queen(piece)
-      when "King"
-        aux = find_possible_moves_king(piece)
+      else # "King" or "Knight"
+        aux = find_possible_moves_generic(piece)
     end
     aux
   end
@@ -484,7 +472,7 @@ class Game
             opponent_in_check = mock_board.in_check?(opponent)
             opponent_in_check_mate = mock_board.in_check_mate?(opponent) && opponent_in_check
             score += 1 if opponent_in_check && !opponent_in_check_mate
-            score += 10 if opponent_in_check && opponent_in_check_mate
+            score += 12 if opponent_in_check && opponent_in_check_mate
             score -= 10 if !opponent_in_check && opponent_in_check_mate
           end
           list_moves.push([score,[x, y], m]) if !(mock_board.in_check?(player))
@@ -631,29 +619,18 @@ class Game
 
   def select_game_mode
     puts "Choose game mode:"
-    puts "a - Both players are humans"
-    puts "b - Player1 (white) is human and player2 (black) is the computer"
-    puts "c - Player2 (black) is human and player1 (white) is the computer"
-    puts "d - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)"
+    puts "1 - Both players are humans"
+    puts "2 - Player1 (white) is human and player2 (black) is the computer"
+    puts "3 - Player2 (black) is human and player1 (white) is the computer"
+    puts "4 - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)"
     choice = gets.chomp.downcase
-    while ((choice.length != 1) || !(choice.match /a|b|c|d/))
+    while ((choice.length != 1) || !(choice.match /[1-4]/))
       puts "Invalid choice. Try again."
       choice = gets.chomp.downcase
     end
-    case choice
-      when "a"
-        @player1.computer_player = false
-        @player2.computer_player = false
-      when "b"
-        @player1.computer_player = false
-        @player2.computer_player = true
-      when "c"
-        @player1.computer_player = true
-        @player2.computer_player = false
-      when "d"
-        @player1.computer_player = true
-        @player2.computer_player = true
-    end
+    choice_bool = (choice.to_i - 1).to_s(2).rjust(2,"0")
+    @player1.computer_player = !(choice_bool[0].to_i).zero?
+    @player2.computer_player = !(choice_bool[1].to_i).zero?
   end
 
   def menu

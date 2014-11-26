@@ -449,7 +449,7 @@ describe Game do
         @board.squares[4][2] = Pawn.new(BLACK)
         @board.squares[3][3] = Bishop.new(WHITE)
         @board.update_positions
-        @board.find_possible_moves_king(@piece)
+        @board.find_possible_moves_generic(@piece)
         @game = Game.new(@board)
       end
 
@@ -492,7 +492,7 @@ describe Game do
         @board.squares[2][4] = Pawn.new(BLACK)
         @board.squares[0][3] = Bishop.new(WHITE)
         @board.update_positions
-        @board.find_possible_moves_knight(@piece)
+        @board.find_possible_moves_generic(@piece)
         @game = Game.new(@board)
       end
 
