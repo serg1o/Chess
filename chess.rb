@@ -20,7 +20,7 @@ class Player
 end
 
 class Piece
-  attr_accessor :color, :position_x, :position_y, :possible_moves
+  attr_accessor :color, :possible_moves
   def initialize(color)
     @color = color
     @possible_moves = []
@@ -84,15 +84,6 @@ class Board
     end
   end
 
-  def update_positions
-    squares_iterator do |x, y|
-      if !squares[x][y].nil?
-        squares[x][y].position_x = x
-        squares[x][y].position_y = y
-      end
-    end
-  end
-
   def create_pieces
     (0..7).each {|pos| @squares[pos][1] = Pawn.new(BLACK)}
     (0..7).each {|pos| @squares[pos][6] = Pawn.new(WHITE)}
@@ -112,7 +103,6 @@ class Board
     @squares[3][7] = Queen.new(WHITE)
     @squares[4][0] = King.new(BLACK)
     @squares[4][7] = King.new(WHITE)
-    update_positions
   end
 
   def line_moves(origin_x, origin_y, inc_x, inc_y, start_square, direction)
@@ -139,11 +129,11 @@ class Board
     return line_moves(origin_x, origin_y, inc_x, inc_y, start_square, 1) + line_moves(origin_x, origin_y, inc_x, inc_y, start_square, -1)
   end
 
-  def find_possible_moves_pawn(piece)
+  def find_possible_moves_pawn(piece, position_x, position_y)
     result = []
     piece.hypo_moves.each do |hm|
-      x = piece.position_x + hm[0]
-      y = piece.position_y + hm[1]
+      x = position_x + hm[0]
+      y = position_y + hm[1]
       next unless (x.between?(0, 7) && y.between?(0, 7))
       if ((squares[x][y] == nil) && (hm[0] == 0))
         result.push([x, y]) if (hm[1].abs == 1)
@@ -156,46 +146,46 @@ class Board
     piece.possible_moves = result
   end
 
-  def find_possible_moves_rook(piece)
-    horiz_moves = get_line_moves(piece.position_x, piece.position_y, 1, 0, piece)
-    vertical_moves = get_line_moves(piece.position_x, piece.position_y, 0, 1, piece)
+  def find_possible_moves_rook(piece, position_x, position_y)
+    horiz_moves = get_line_moves(position_x, position_y, 1, 0, piece)
+    vertical_moves = get_line_moves(position_x, position_y, 0, 1, piece)
     piece.possible_moves = horiz_moves + vertical_moves
   end
 
-  def find_possible_moves_bishop(piece)
-    diag1_moves = get_line_moves(piece.position_x, piece.position_y, 1, 1, piece)
-    diag2_moves = get_line_moves(piece.position_x, piece.position_y, 1, -1, piece)
+  def find_possible_moves_bishop(piece, position_x, position_y)
+    diag1_moves = get_line_moves(position_x, position_y, 1, 1, piece)
+    diag2_moves = get_line_moves(position_x, position_y, 1, -1, piece)
     piece.possible_moves = diag1_moves + diag2_moves
   end
 
-  def find_possible_moves_generic(piece)
+  def find_possible_moves_generic(piece, position_x, position_y)
     result = []
     piece.hypo_moves.each do |hm|
-      x = piece.position_x + hm[0]
-      y = piece.position_y + hm[1]
+      x = position_x + hm[0]
+      y = position_y + hm[1]
       result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && ((squares[x][y] == nil) || (squares[x][y].color != piece.color)))
     end
     piece.possible_moves = result
   end
 
-  def find_possible_moves_queen(piece)
-    piece.possible_moves = find_possible_moves_bishop(piece) + find_possible_moves_rook(piece)
+  def find_possible_moves_queen(piece, x, y)
+    piece.possible_moves = find_possible_moves_bishop(piece, x, y) + find_possible_moves_rook(piece, x, y)
   end
 
-  def find_possible_moves(piece)
+  def find_possible_moves(piece, x, y)
     aux = []
     piece_class = piece.class.to_s
     case piece_class
       when "Pawn"
-        aux = find_possible_moves_pawn(piece)
+        aux = find_possible_moves_pawn(piece, x, y)
       when "Rook"
-        aux = find_possible_moves_rook(piece)
+        aux = find_possible_moves_rook(piece, x, y)
       when "Bishop"
-        aux = find_possible_moves_bishop(piece)
+        aux = find_possible_moves_bishop(piece, x, y)
       when "Queen"
-        aux = find_possible_moves_queen(piece)
+        aux = find_possible_moves_queen(piece, x, y)
       else # "King" or "Knight"
-        aux = find_possible_moves_generic(piece)
+        aux = find_possible_moves_generic(piece, x, y)
     end
     aux
   end
@@ -210,7 +200,7 @@ class Board
     position ||= find_king_coordinates(player)
     squares_iterator do |x, y|
       next if (squares[x][y].nil? || (player.color == squares[x][y].color))
-      poss_moves = find_possible_moves(squares[x][y])
+      poss_moves = find_possible_moves(squares[x][y], x, y)
       return true if poss_moves.include?(position)
     end
     return false
@@ -218,8 +208,6 @@ class Board
 
   def make_move(from, to, piece_to_restore = nil)
     piece_to_move = squares[from[0]][from[1]]
-    piece_to_move.position_x = to[0]
-    piece_to_move.position_y = to[1]
     piece_taken = nil
     if ((piece_to_move.class == Pawn) && ((piece_to_move.enpassant_move == from) || (piece_to_move.enpassant_move == to)))
       inc_y = (piece_to_move.color == WHITE) ? 1 : -1
@@ -241,7 +229,7 @@ class Board
   def in_check_mate?(player)
     squares_iterator do |x, y|
       next if (squares[x][y].nil? || (player.color != squares[x][y].color))
-      poss_moves = find_possible_moves(squares[x][y])
+      poss_moves = find_possible_moves(squares[x][y], x, y)
       poss_moves.each do |mov|
         coord_to = mov
         coord_from = [x, y]
@@ -304,8 +292,6 @@ class Board
       when "b"
         squares[x][y] = Bishop.new(color)
     end
-    squares[x][y].position_x = x
-    squares[x][y].position_y = y
   end
 
   def opponent_pawn?(pawn, opponent_piece)
@@ -313,14 +299,14 @@ class Board
     false
   end
 
-  def enable_enpassant(piece, origin)
-    if ((piece.class == Pawn) && ((piece.position_y - origin[1]).abs == 2))
+  def enable_enpassant(piece, origin, position_x, position_y)
+    if ((piece.class == Pawn) && ((position_y - origin[1]).abs == 2))
       y_inc = piece.color == WHITE ? -1 : 1
-      if ((piece.position_x + 1 <= 7) && (opponent_pawn?(piece, squares[piece.position_x + 1][piece.position_y])))
-        squares[piece.position_x + 1][piece.position_y].enpassant_move = [origin[0], origin[1] + y_inc]
+      if ((position_x + 1 <= 7) && (opponent_pawn?(piece, squares[position_x + 1][position_y])))
+        squares[position_x + 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc]
       end
-      if ((piece.position_x - 1 >= 0) && (opponent_pawn?(piece, squares[piece.position_x - 1][piece.position_y])))
-        squares[piece.position_x - 1][piece.position_y].enpassant_move = [origin[0], origin[1] + y_inc]
+      if ((position_x - 1 >= 0) && (opponent_pawn?(piece, squares[position_x - 1][position_y])))
+        squares[position_x - 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc]
       end
     end
   end
@@ -338,7 +324,7 @@ class Board
     end
   end
 
-  def count_remaining_pieces
+  def count_pieces
     count = 0
     squares_iterator { |x, y| count += 1 if squares[x][y] }
     count
@@ -447,7 +433,7 @@ class Game
     list_moves = []
     mock_board.squares_iterator do |x, y|
       if ((mock_board.squares[x][y] != nil) && (mock_board.squares[x][y].color == player.color))
-        p_moves = mock_board.find_possible_moves(mock_board.squares[x][y])
+        p_moves = mock_board.find_possible_moves(mock_board.squares[x][y], x, y)
         p_moves.each do |m|
           p_taken = mock_board.make_move([x, y], m)
           score = 0
@@ -514,7 +500,7 @@ class Game
   end
 
   def player_turn(player)
-    if board.count_remaining_pieces < 3
+    if board.count_pieces < 3
       print_message("The game ended in a tie.")
       return true
     end
@@ -558,7 +544,7 @@ class Game
         next
       end 
       piece = board.squares[coord_from[0]][coord_from[1]]
-      board.find_possible_moves(piece)
+      board.find_possible_moves(piece, coord_from[0], coord_from[1])
       board.display_board
       puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
       if player.computer_player
@@ -576,7 +562,7 @@ class Game
           next
         end
         board.clear_enpassant(player) #revoke the possibility of making en passant moves
-        board.enable_enpassant(piece, coord_from) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
+        board.enable_enpassant(piece, coord_from, coord_to[0], coord_to[1]) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
         board.promote_pawn(coord_to, player) if ((piece.class == Pawn) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
         board.update_pawn_hypo_moves(piece, coord_to, coord_from[1])
         if board.in_check?(opponent)

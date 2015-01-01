@@ -14,8 +14,7 @@ describe Game do
           @board = Board.new
           @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4, 6)
           @game = Game.new(@board)
         end
         
@@ -42,8 +41,7 @@ describe Game do
           @piece = Pawn.new(WHITE)
           @board.squares[4][6] = @piece
           @board.squares[4][5] = Knight.new(BLACK)
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4, 6)
           @game = Game.new(@board)
         end
 
@@ -66,9 +64,8 @@ describe Game do
           @piece2 = Pawn.new(BLACK)
           @board.squares[0][1] = @piece2
           @board.squares[0][3] = Knight.new(WHITE)
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
-          @board.find_possible_moves_pawn(@piece2)
+          @board.find_possible_moves_pawn(@piece, 4, 6)
+          @board.find_possible_moves_pawn(@piece2, 4, 4)
           @game = Game.new(@board)
         end
 
@@ -89,8 +86,7 @@ describe Game do
           @board.squares[5][5] = Knight.new(BLACK)
           @board.squares[3][5] = Queen.new(WHITE)
           @board.squares[3][7] = Bishop.new(BLACK)
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4, 6)
           @game = Game.new(@board)
         end
 
@@ -114,7 +110,6 @@ describe Game do
           @board.squares[4][7] = King.new(WHITE)
           @board.squares[4][0] = King.new(BLACK)
           @board.squares[4][6] = @piece
-          @board.update_positions
           @game = Game.new(@board)
           @game.player1 = Player.new(WHITE, "player1")
           @game.player2 = Player.new(BLACK, "player2")
@@ -157,8 +152,7 @@ describe Game do
           @board = Board.new
           @piece = Pawn.new(BLACK)
           @board.squares[4][1] = @piece
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4, 1)
           @game = Game.new(@board)
         end
         
@@ -185,8 +179,7 @@ describe Game do
           @piece = Pawn.new(BLACK)
           @board.squares[4][1] = @piece
           @board.squares[4][2] = Knight.new(WHITE)
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4 ,1)
           @game = Game.new(@board)
         end
 
@@ -208,8 +201,7 @@ describe Game do
           @board.squares[3][2] = Knight.new(WHITE)
           @board.squares[5][2] = Queen.new(BLACK)
           @board.squares[3][0] = Bishop.new(WHITE)
-          @board.update_positions
-          @board.find_possible_moves_pawn(@piece)
+          @board.find_possible_moves_pawn(@piece, 4, 1)
           @game = Game.new(@board)
         end
 
@@ -233,7 +225,6 @@ describe Game do
           @board.squares[4][7] = King.new(WHITE)
           @board.squares[4][0] = King.new(BLACK)
           @board.squares[4][1] = @piece
-          @board.update_positions
           @game = Game.new(@board)
           @game.player1 = Player.new(WHITE, "player1")
           @game.player2 = Player.new(BLACK, "player2")
@@ -277,8 +268,7 @@ describe Game do
         @board.squares[4][3] = @piece
         @board.squares[4][1] = Queen.new(BLACK)
         @board.squares[2][3] = Pawn.new(WHITE)
-        @board.update_positions
-        @board.find_possible_moves_rook(@piece)
+        @board.find_possible_moves_rook(@piece, 4, 3)
         @game = Game.new(@board)
       end
 
@@ -322,8 +312,7 @@ describe Game do
         @board.squares[4][3] = @piece
         @board.squares[6][1] = Queen.new(BLACK)
         @board.squares[6][5] = Pawn.new(WHITE)
-        @board.update_positions
-        @board.find_possible_moves_bishop(@piece)
+        @board.find_possible_moves_bishop(@piece, 4, 3)
         @game = Game.new(@board)
       end
 
@@ -373,8 +362,7 @@ describe Game do
         @board.squares[6][5] = Pawn.new(WHITE)
         @board.squares[4][2] = Pawn.new(BLACK)
         @board.squares[3][3] = Bishop.new(WHITE)
-        @board.update_positions
-        @board.find_possible_moves_queen(@piece)
+        @board.find_possible_moves_queen(@piece, 4, 3)
         @game = Game.new(@board)
       end
 
@@ -448,8 +436,7 @@ describe Game do
         @board.squares[5][4] = Rook.new(WHITE)
         @board.squares[4][2] = Pawn.new(BLACK)
         @board.squares[3][3] = Bishop.new(WHITE)
-        @board.update_positions
-        @board.find_possible_moves_generic(@piece)
+        @board.find_possible_moves_generic(@piece, 4, 3)
         @game = Game.new(@board)
       end
 
@@ -491,8 +478,7 @@ describe Game do
         @board.squares[2][7] = King.new(BLACK)
         @board.squares[2][4] = Pawn.new(BLACK)
         @board.squares[0][3] = Bishop.new(WHITE)
-        @board.update_positions
-        @board.find_possible_moves_generic(@piece)
+        @board.find_possible_moves_generic(@piece, 1, 5)
         @game = Game.new(@board)
       end
 
@@ -539,7 +525,6 @@ describe Game do
       @board.squares[4][0] = King.new(BLACK)
       @board.squares[7][7] = Rook.new(WHITE)
       @board.squares[0][7] = Rook.new(WHITE)
-      @board.update_positions
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -548,7 +533,6 @@ describe Game do
     context " with pieces between king and rook" do
       before do
         @board.squares[6][7] = Knight.new(WHITE)
-        @board.update_positions
       end
 
       after do
@@ -563,7 +547,6 @@ describe Game do
     context " when king in check" do
       before do
         @board.squares[4][5] = Rook.new(BLACK)
-        @board.update_positions
       end
  
       after do
@@ -578,7 +561,6 @@ describe Game do
     context " when adjacent square to the right of king is in check" do
       before do
         @board.squares[5][5] = Rook.new(BLACK)
-        @board.update_positions
       end
 
       after do
@@ -593,7 +575,6 @@ describe Game do
     context " when second square to the right of king in check" do
       before do
         @board.squares[6][5] = Rook.new(BLACK)
-        @board.update_positions
       end
 
       after do
@@ -651,7 +632,6 @@ describe Game do
     context " when king's rook in check" do
       before do
         @board.squares[7][5] = Rook.new(BLACK)
-        @board.update_positions
       end
 
       after do
@@ -716,7 +696,6 @@ describe Game do
       @board.squares[4][0] = King.new(BLACK)
       @board.squares[7][7] = Rook.new(WHITE)
       @board.squares[0][7] = Rook.new(WHITE)
-      @board.update_positions
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -725,7 +704,7 @@ describe Game do
     context " with pieces between king and rook" do
       before do
         @board.squares[2][7] = Knight.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -740,7 +719,7 @@ describe Game do
     context " when king in check" do
       before do
         @board.squares[4][5] = Rook.new(BLACK)
-        @board.update_positions
+        
       end
  
       after do
@@ -755,7 +734,7 @@ describe Game do
     context " when adjacent square to the left of king is in check" do
       before do
         @board.squares[3][5] = Rook.new(BLACK)
-        @board.update_positions
+        
       end
 
       after do
@@ -770,7 +749,7 @@ describe Game do
     context " when second square to the left of king in check" do
       before do
         @board.squares[2][5] = Rook.new(BLACK)
-        @board.update_positions
+        
       end
 
       after do
@@ -785,7 +764,7 @@ describe Game do
     context " when third square to the left of king in check" do
       before do
         @board.squares[1][5] = Rook.new(BLACK)
-        @board.update_positions
+        
       end
 
       after do
@@ -842,7 +821,7 @@ describe Game do
     context " when queen's rook in check" do
       before do
         @board.squares[0][5] = Rook.new(BLACK)
-        @board.update_positions
+        
       end
 
       after do
@@ -910,7 +889,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[7][0] = Rook.new(BLACK)
       @board.squares[0][0] = Rook.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -919,7 +898,7 @@ describe Game do
     context " with pieces between king and rook" do
       before do
         @board.squares[6][0] = Knight.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -934,7 +913,7 @@ describe Game do
     context " when king in check" do
       before do
         @board.squares[4][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
  
       after do
@@ -949,7 +928,7 @@ describe Game do
     context " when adjacent square to the right of king is in check" do
       before do
         @board.squares[5][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -964,7 +943,7 @@ describe Game do
     context " when second square to the right of king in check" do
       before do
         @board.squares[6][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1021,7 +1000,7 @@ describe Game do
     context " when king's rook in check" do
       before do
         @board.squares[7][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1087,7 +1066,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[7][0] = Rook.new(BLACK)
       @board.squares[0][0] = Rook.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1096,7 +1075,7 @@ describe Game do
     context " with pieces between king and rook" do
       before do
         @board.squares[2][0] = Knight.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1111,7 +1090,7 @@ describe Game do
     context " when king in check" do
       before do
         @board.squares[4][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
  
       after do
@@ -1126,7 +1105,7 @@ describe Game do
     context " when adjacent square to the left of king is in check" do
       before do
         @board.squares[3][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1141,7 +1120,7 @@ describe Game do
     context " when second square to the left of king in check" do
       before do
         @board.squares[2][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1156,7 +1135,7 @@ describe Game do
     context " when third square to the left of king in check" do
       before do
         @board.squares[1][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1214,7 +1193,7 @@ describe Game do
     context " when queen's rook in check" do
       before do
         @board.squares[0][5] = Rook.new(WHITE)
-        @board.update_positions
+        
       end
 
       after do
@@ -1279,7 +1258,7 @@ describe Game do
       @board.squares[7][0] = King.new(WHITE)
       @board.squares[6][2] = Queen.new(BLACK)
       @board.squares[5][2] = King.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
     end
 
@@ -1297,7 +1276,7 @@ describe Game do
       @board.squares[6][2] = Queen.new(BLACK)
       @board.squares[5][2] = King.new(BLACK)
       @board.squares[5][1] = Knight.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
     end
 
@@ -1313,7 +1292,7 @@ describe Game do
       @board.squares[7][0] = King.new(WHITE)
       @board.squares[6][2] = Queen.new(BLACK)
       @board.squares[5][2] = King.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
     end
 
@@ -1331,7 +1310,7 @@ describe Game do
       @board.squares[7][4] = Pawn.new(BLACK)
       @board.squares[6][6] = Pawn.new(WHITE)
       @board.squares[6][1] = Queen.new(WHITE)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = @player1
       @game.player2 = @player2
@@ -1365,7 +1344,6 @@ describe Game do
       before do
         @game.board.squares[5][1] = Pawn.new(BLACK)
         @game.board.squares[4][3] = Pawn.new(WHITE)
-        @game.board.update_positions
       end
 
       it "takes opponent's pawn en passant" do
@@ -1393,7 +1371,6 @@ describe Game do
       before do
         @game.board.squares[3][1] = Pawn.new(BLACK)
         @game.board.squares[4][3] = Pawn.new(WHITE)
-        @game.board.update_positions
       end
 
       it "takes opponent's pawn en passant" do
@@ -1421,7 +1398,6 @@ describe Game do
       before do
         @game.board.squares[3][1] = Pawn.new(BLACK)
         @game.board.squares[4][3] = Pawn.new(WHITE)
-        @game.board.update_positions
       end
 
       it "can't take the opponent's pawn en passant" do
@@ -1454,7 +1430,6 @@ describe Game do
       before do
         @game.board.squares[5][1] = Rook.new(BLACK)
         @game.board.squares[4][3] = Pawn.new(WHITE)
-        @game.board.update_positions
        
       end
 
@@ -1481,7 +1456,6 @@ describe Game do
       before do
         @game.board.squares[5][2] = Pawn.new(BLACK)
         @game.board.squares[4][3] = Pawn.new(WHITE)
-        @game.board.update_positions
       end
 
       it "can't take the opponent's pawn en passant" do
@@ -1511,7 +1485,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[0][5] = Rook.new(WHITE)
       @board.squares[7][7] = Rook.new(WHITE)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1543,7 +1517,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[0][7] = Rook.new(WHITE)
       @board.squares[7][5] = Rook.new(WHITE)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1581,7 +1555,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[7][0] = Rook.new(BLACK)
       @board.squares[0][2] = Rook.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1613,7 +1587,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[0][0] = Rook.new(BLACK)
       @board.squares[7][2] = Rook.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1650,7 +1624,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[6][5] = Knight.new(BLACK)
       @board.squares[7][7] = Rook.new(WHITE)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1683,7 +1657,7 @@ describe Game do
       @board.squares[0][7] = Rook.new(WHITE)
       @board.squares[7][7] = Rook.new(WHITE)
       @board.squares[1][6] = Bishop.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1720,7 +1694,7 @@ describe Game do
       @board.squares[4][7] = King.new(WHITE)
       @board.squares[6][2] = Knight.new(WHITE)
       @board.squares[7][0] = Rook.new(BLACK)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
@@ -1753,7 +1727,7 @@ describe Game do
       @board.squares[0][0] = Rook.new(BLACK)
       @board.squares[7][0] = Rook.new(BLACK)
       @board.squares[1][1] = Bishop.new(WHITE)
-      @board.update_positions
+      
       @game = Game.new(@board)
       @game.player1 = Player.new(WHITE, "player1")
       @game.player2 = Player.new(BLACK, "player2")
