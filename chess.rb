@@ -11,11 +11,6 @@ class Player
   def initialize(color, order)
     @order_player = order #player1, player2
     @color = color
-    @computer_player = false
-    #for checking if encastling is possible
-    @queen_rook_moved = false
-    @king_rook_moved = false
-    @king_moved = false
   end
 end
 
@@ -174,15 +169,14 @@ class Board
 
   def find_possible_moves(piece, x, y)
     aux = []
-    piece_class = piece.class.to_s
-    case piece_class
-      when "Pawn"
+    case piece
+      when Pawn
         aux = find_possible_moves_pawn(piece, x, y)
-      when "Rook"
+      when Rook
         aux = find_possible_moves_rook(piece, x, y)
-      when "Bishop"
+      when Bishop
         aux = find_possible_moves_bishop(piece, x, y)
-      when "Queen"
+      when Queen
         aux = find_possible_moves_queen(piece, x, y)
       else # "King" or "Knight"
         aux = find_possible_moves_generic(piece, x, y)
@@ -266,8 +260,7 @@ class Board
 
   def promote_pawn(at_pos, current_player)
     display_board
-    x = at_pos[0]
-    y = at_pos[1]
+    x, y = at_pos
     puts "Choose which piece do you want to promote the pawn to:"
     puts "q - Queen"
     puts "r - Rook"
@@ -295,8 +288,7 @@ class Board
   end
 
   def opponent_pawn?(pawn, opponent_piece)
-    return true if (opponent_piece.class == Pawn) && (opponent_piece.color != pawn.color)
-    false
+    (opponent_piece.class == Pawn) && (opponent_piece.color != pawn.color)
   end
 
   def enable_enpassant(piece, origin, position_x, position_y)
@@ -324,10 +316,22 @@ class Board
     end
   end
 
-  def count_pieces
-    count = 0
-    squares_iterator { |x, y| count += 1 if squares[x][y] }
-    count
+  def draw?
+    num_white_bishops, num_white_knights, num_black_bishops, num_black_knights = 0, 0, 0, 0
+    squares_iterator do |x, y|
+      pc = squares[x][y]
+      if pc
+        pclass = pc.class
+        return false if pclass == Rook || pclass == Pawn || pclass == Queen 
+        num_white_bishops += 1 if pclass == Bishop && pc.color == WHITE
+        num_white_knights += 1 if pclass == Knight && pc.color == WHITE
+        num_black_bishops += 1 if pclass == Bishop && pc.color == BLACK
+        num_black_knights += 1 if pclass == Knight && pc.color == BLACK
+      end
+    end
+    return false if num_white_bishops > 1 || num_black_bishops > 1 || num_black_knights > 2 || num_white_knights > 2 ||
+                   (num_white_bishops > 0 && num_white_knights > 0) || (num_black_bishops > 0 && num_black_knights > 0)
+    true
   end
 
   def get_piece_code(piece)
@@ -360,8 +364,6 @@ class Game
   attr_accessor :board, :player1, :player2, :game_file, :next_to_play
   def initialize(board = nil)
     @board = board || Board.new
-    @game_file = nil
-    @next_to_play = nil
   end
 
   def save_game
@@ -455,9 +457,7 @@ class Game
   end
 
   def get_max_score(list)
-    max = 0
-    list.each { |elem| max = elem[0] if (elem[0] > max) }
-    max
+    list.map { |elem| elem[0] }.max || 0 #if list is empty return 0
   end
 
   def get_computer_move(board, player, opponent)
@@ -500,7 +500,7 @@ class Game
   end
 
   def player_turn(player)
-    if board.count_pieces < 3
+    if board.draw?
       print_message("The game ended in a tie.")
       return true
     end
