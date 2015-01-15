@@ -72,16 +72,18 @@ class Game
 
   def print_message(msg)
     block = "\u2593"
-    puts "#{block*6}#{block*msg.length}#{block*7}"
-    puts "#{block*2}#{' '*(msg.length + 9)}#{block*2}"
-    puts "#{block*2}     #{msg}    #{block*2}"
-    puts "#{block*2}#{' '*(msg.length + 9)}#{block*2}"
-    puts "#{block*6}#{block*msg.length}#{block*7}"
+    puts <<-HERE
+#{block * 6}#{block * msg.length}#{block * 7}
+#{block * 2}#{' ' * (msg.length + 9)}#{block * 2}
+#{block * 2}     #{msg}    #{block * 2}
+#{block * 2}#{' '* (msg.length + 9)}#{block * 2}
+#{block * 6}#{block * msg.length}#{block * 7}
+    HERE
   end
 
   def print_board_and_message(msg)
     board.display_board
-    print_message(msg)
+    print_message msg
   end
 
   #verify if the player's king or rooks moved or if any of the opponents rooks was taken in order to invalidate the corresponding encastling move
@@ -100,14 +102,13 @@ class Game
   end
 
   def get_moves_and_score(mock_board, player, opponent)
-    list_moves = []
+    list_moves = Array.new
     mock_board.squares_iterator do |x, y|
-      if ((mock_board.squares[x][y] != nil) && (mock_board.squares[x][y].color == player.color))
-        p_moves = mock_board.find_possible_moves(mock_board.squares[x][y], x, y)
+      if !(mock_board.squares[x][y].nil?) && mock_board.squares[x][y].color == player.color
+        p_moves = mock_board.find_possible_moves mock_board.squares[x][y], x, y
         p_moves.each do |m|
-          p_taken = mock_board.make_move([x, y], m)
-          score = 0
-          if p_taken != nil
+          p_taken, score = mock_board.make_move([x, y], m), 0
+          unless p_taken.nil?
             p_taken_class = p_taken.class.to_s
             score = SCORES[p_taken_class]
             opponent_in_check = mock_board.in_check?(opponent)
@@ -116,8 +117,8 @@ class Game
             score += 12 if opponent_in_check && opponent_in_check_mate
             score -= 10 if !opponent_in_check && opponent_in_check_mate
           end
-          list_moves.push([score,[x, y], m]) if !(mock_board.in_check?(player))
-          mock_board.make_move(m, [x, y], p_taken)
+          list_moves.push [score,[x, y], m] unless mock_board.in_check? player
+          mock_board.make_move m, [x, y], p_taken
         end
       end
     end
@@ -125,40 +126,30 @@ class Game
   end
 
   def get_max_score(list)
-    list.map { |elem| elem[0] }.max || 0 #if list is empty return 0
+    list.map {  |elem| elem[0] }.max || 0 #if list is empty return 0
   end
 
   def get_computer_move(board, player, opponent)
-    mock_board = board.dup #clone?
-    list_moves = get_moves_and_score(mock_board, player, opponent)
-    aux_list = []
-    m_board = mock_board.dup
-    opp = opponent.dup
-    plr = player.dup  
+    mock_board = board.dup
+    list_moves, aux_list, m_board, opp, plr = get_moves_and_score(mock_board, player, opponent), Array.new, mock_board.dup, opponent.dup, player.dup
     list_moves.each do |m|
-      p_taken = m_board.make_move(m[1], m[2])
+      p_taken = m_board.make_move m[1], m[2]
       subtract_score = get_max_score(get_moves_and_score(m_board, opp, plr))
       m_board.make_move(m[2], m[1], p_taken)
       aux_elem = m
       aux_elem[0] -= subtract_score
-      aux_list.push(aux_elem)
+      aux_list.push aux_elem
     end
     aux_list.shuffle!
-    pc_move = [aux_list.first[1], aux_list.first[2]]
-    pc_move_score = aux_list.first[0]
-    aux_list.each do |mv|
-      if mv[0] > pc_move_score
-        pc_move = [mv[1], mv[2]]
-        pc_move_score = mv[0]
-      end
-    end
+    pc_move, pc_move_score = [aux_list.first[1], aux_list.first[2]], aux_list.first[0]
+    aux_list.each { |mv| pc_move, pc_move_score = [mv[1], mv[2]], mv[0] if m.first > pc_move_score  }
     return [pc_move[0].join, pc_move[1].join]
   end
 
   def get_xy
-    while true
+    loop do
       xy = gets.chomp
-      if (((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/)) || ((xy.length == 1) && (xy.match /s|S|q|Q/)))
+      if ((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/)) || ((xy.length == 1) && (xy.match /s|S|q|Q/))
         return xy
       else
         board.display_board
@@ -169,17 +160,19 @@ class Game
 
   def player_turn(player)
     if board.draw?
-      print_message("The game ended in a tie.")
+      print_message "The game ended in a tie."
       return true
     end
     opponent = (@player1 == player) ? @player2 : @player1
-    while true
+    loop do
       puts "\n#{player.order_player}, #{player.color}\'s turn"
       board.display_board
-      puts "\nWrite 's' to save the game."
-      puts "Write 'q' to exit the game without saving."
-      puts "Choose the coordinates of the piece to move (xy),"
-      puts "or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook."
+      puts <<-HERE
+\nWrite 's' to save the game.
+Write 'q' to exit the game without saving.
+Choose the coordinates of the piece to move (xy),
+or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook.
+      HERE
       sleep(1) if player.computer_player && opponent.computer_player
       comp_move = []
       if player.computer_player
@@ -194,18 +187,18 @@ class Game
         next
       end
       if xy_origin == "88"
-        break if board.encastle_left(player)
-        print_board_and_message("It is not possible to encastle with the queen's rook.")
+        break if board.encastle_left player
+        print_board_and_message "It is not possible to encastle with the queen's rook."
         next
       elsif xy_origin == "99"
-        break if board.encastle_right(player)
-        print_board_and_message("It is not possible to encastle with the king's rook.")
+        break if board.encastle_right player
+        print_board_and_message "It is not possible to encastle with the king's rook."
         next
       end
       coord_from = xy_origin.split('')
       coord_from = [coord_from[0].to_i, coord_from[1].to_i]
       if (board.squares[coord_from[0]][coord_from[1]].nil?)
-        print_board_and_message("There's no piece to move at those coordinates. Try again.")
+        print_board_and_message "There's no piece to move at those coordinates. Try again."
         next
       elsif (board.squares[coord_from[0]][coord_from[1]].color != player.color)
         print_board_and_message("You can't move your opponent's pieces. Try again.")
@@ -215,11 +208,7 @@ class Game
       board.find_possible_moves(piece, coord_from[0], coord_from[1])
       board.display_board
       puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
-      if player.computer_player
-        xy_dest = comp_move[1]
-      else
-        xy_dest = get_xy
-      end
+      xy_dest = player.computer_player ? comp_move[1] : get_xy 
       coord_to = xy_dest.split('')
       coord_to = [coord_to[0].to_i, coord_to[1].to_i]
       if piece.possible_moves.include? ([coord_to[0], coord_to[1]])    
@@ -261,7 +250,7 @@ class Game
     puts "3 - Player2 (black) is human and player1 (white) is the computer"
     puts "4 - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)"
     choice = gets.chomp.downcase
-    while ((choice.length != 1) || !(choice.match /[1-4]/))
+    until choice.length == 1 && choice.match /[1-4]/
       puts "Invalid choice. Try again."
       choice = gets.chomp.downcase
     end
