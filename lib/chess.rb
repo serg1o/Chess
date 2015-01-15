@@ -17,3 +17,5 @@ module Chess
     h_line: "\u2500"
   }
   SCORES = { "Queen" => 9, "Rook" => 5, "Bishop" => 3, "Knight" => 3, "Pawn" => 1 }
+  require "chess/*"
+end
