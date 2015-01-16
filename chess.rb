@@ -15,15 +15,15 @@ class Game
   end
 
   def save_game
-    Dir.mkdir("saved_games") if !Dir.exists?("saved_games")
+    Dir.mkdir("saved_games") unless Dir.exists?("saved_games")
     if @game_file.nil?
       list_files = Dir["saved_games/*"]
       list_ids = list_files.collect { |fname| fname.scan(/\d+/).join.to_i }
       new_id = list_ids.empty? ? 1 : list_ids.max + 1
       @game_file = "saved_games/game#{new_id}.txt"
     end
-    File.open(@game_file, "w").write(YAML::dump([self]))
-    puts "file saved as " + game_file
+    File.open(@game_file, "w").write YAML::dump [self]
+    puts "file saved as #{game_file}"
   end
 
   def load_game 
@@ -36,9 +36,9 @@ class Game
     puts "Choose the id of the file to load: "
     puts list_ids.inspect
     id_load = gets.chomp
-    if File.exists?("saved_games/game#{id_load}.txt")
+    if File.exists? "saved_games/game#{id_load}.txt"
       data = File.open("saved_games/game#{id_load}.txt", "r").readlines.join
-      values = YAML::load(data)
+      values = YAML::load data
       self.board = values[0].board
       self.player1 = values[0].player1
       self.player2 = values[0].player2
@@ -114,8 +114,8 @@ class Game
     list_moves, aux_list, m_board, opp, plr = get_moves_and_score(mock_board, player, opponent), Array.new, mock_board.dup, opponent.dup, player.dup
     list_moves.each do |m|
       p_taken = m_board.make_move m[1], m[2]
-      subtract_score = get_max_score(get_moves_and_score(m_board, opp, plr))
-      m_board.make_move(m[2], m[1], p_taken)
+      subtract_score = get_max_score get_moves_and_score m_board, opp, plr
+      m_board.make_move m[2], m[1], p_taken
       aux_elem = m
       aux_elem[0] -= subtract_score
       aux_list.push aux_elem
@@ -154,7 +154,7 @@ Choose the coordinates of the piece to move (xy),
 or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook.
       HERE
       sleep(1) if player.computer_player && opponent.computer_player
-      comp_move = []
+      comp_move = Array.new
       if player.computer_player
         comp_move = get_computer_move(board, player.dup, opponent.dup)
         xy_origin = comp_move[0]
@@ -175,41 +175,41 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
         print_board_and_message "It is not possible to encastle with the king's rook."
         next
       end
-      coord_from = xy_origin.split('')
+      coord_from = xy_origin.split String.new
       coord_from = [coord_from[0].to_i, coord_from[1].to_i]
       if (board.squares[coord_from[0]][coord_from[1]].nil?)
         print_board_and_message "There's no piece to move at those coordinates. Try again."
         next
-      elsif (board.squares[coord_from[0]][coord_from[1]].color != player.color)
-        print_board_and_message("You can't move your opponent's pieces. Try again.")
+      elsif board.squares[coord_from[0]][coord_from[1]].color != player.color
+        print_board_and_message "You can't move your opponent's pieces. Try again."
         next
-      end 
+      end
       piece = board.squares[coord_from[0]][coord_from[1]]
       board.find_possible_moves(piece, coord_from[0], coord_from[1])
       board.display_board
       puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
       xy_dest = player.computer_player ? comp_move[1] : get_xy 
-      coord_to = xy_dest.split('')
+      coord_to = xy_dest.split String.new
       coord_to = [coord_to[0].to_i, coord_to[1].to_i]
-      if piece.possible_moves.include? ([coord_to[0], coord_to[1]])    
-        piece_at_dest = board.make_move(coord_from, coord_to)    
-        if board.in_check?(player)
-          print_board_and_message("You can't make that move. You'll be in check.")
-          board.make_move(coord_to, coord_from, piece_at_dest)
+      if piece.possible_moves.include? [coord_to[0], coord_to[1]]    
+        piece_at_dest = board.make_move coord_from, coord_to    
+        if board.in_check? player
+          print_board_and_message "You can't make that move. You'll be in check."
+          board.make_move coord_to, coord_from, piece_at_dest
           next
         end
-        board.clear_enpassant(player) #revoke the possibility of making en passant moves
-        board.enable_enpassant(piece, coord_from, coord_to[0], coord_to[1]) #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
-        board.promote_pawn(coord_to, player) if ((piece.class == Pawn) && ((coord_to[1] == 0) || (coord_to[1] == 7)))
-        board.update_pawn_hypo_moves(piece, coord_to, coord_from[1])
-        if board.in_check?(opponent)
-          if board.in_check_mate?(opponent)
-            print_board_and_message("Checkmate! " + player.color + " player has won the game.")
+        board.clear_enpassant player #revoke the possibility of making en passant moves
+        board.enable_enpassant piece, coord_from, coord_to[0], coord_to[1] #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
+        board.promote_pawn(coord_to, player) if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
+        board.update_pawn_hypo_moves piece, coord_to, coord_from[1]
+        if board.in_check? opponent
+          if board.in_check_mate? opponent
+            print_board_and_message("Checkmate! #{player.color} player has won the game.")
             return true
           end
-          print_message(opponent.color + " king is in check!")
+          print_message "#{opponent.color} king is in check!"
         else #check for stalemate
-          if board.in_check_mate?(opponent) #check if any possible move results in check while not being in check in the current position
+          if board.in_check_mate? opponent #check if any possible move results in check while not being in check in the current position
             print_board_and_message("The game ended in a stalemate.")
             return true
           end
@@ -240,15 +240,15 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
   end
 
   def menu
-    @player1 = Player.new(WHITE, "player1")
-    @player2 = Player.new(BLACK, "player2")
+    @player1 = Player.new WHITE, "player1"
+    @player2 = Player.new BLACK, "player2"
     @board.create_pieces
-    if Dir.exists?("saved_games")
+    if Dir.exists? "saved_games"
       puts "Do you want to load a saved game? (y/n)"
       load_saved = gets[0].downcase
-      if (load_saved == "y") && load_game
+      if load_saved == "y" && load_game
         if @next_to_play == BLACK
-          return if player_turn(@player2)
+          return if player_turn @player2
           @next_to_play = @player1.color
         end
       else
@@ -258,13 +258,10 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
       select_game_mode
     end
     loop do
-      break if player_turn(@player1)
+      break if player_turn @player1
       @next_to_play = @player2.color
-      break if player_turn(@player2)
+      break if player_turn @player2
       @next_to_play = @player1.color
     end
   end
 end
-
-g = Game.new
-g.menu
