@@ -1,13 +1,5 @@
 require 'yaml'
 
-class Knight < Piece
-  attr_reader :hypo_moves
-  def initialize(color)
-    super(color)
-    @hypo_moves = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
-  end
-end
-
 class Game
   attr_accessor :board, :player1, :player2, :game_file, :next_to_play
   def initialize(board = nil)
