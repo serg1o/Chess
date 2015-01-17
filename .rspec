@@ -1,0 +1,5 @@
+--color
+-f doc
+-r spec_helper
+--warnings
+spec/lib/**/*_spec.rb
