@@ -1,4 +1,4 @@
-require_relative '../chess'
+require "chess/game"
  
 describe Game do
 
