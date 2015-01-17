@@ -7,4 +7,5 @@ Gem::Specification.new do |gem|
 	gem.required_ruby_version = "> 1.8.7"
 	gem.test_files = Dir["spec/**/*_spec.rb"]
 	gem.executables << "chess"
+	gem.add_development_dependency "rspec"
 end
