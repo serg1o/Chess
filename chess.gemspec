@@ -1,5 +1,6 @@
 Gem::Specification.new do |gem|
 	gem.name = "chess"
+        gem.summary = "Game of chess played on the command line"
 	gem.files = Dir["lib/**/*.rb"]
 	gem.version = "0.0.0"
 	gem.authors = "Sérgio Ribeiro", "Zachary Perlmutter"

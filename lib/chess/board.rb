@@ -1,9 +1,3 @@
-require "chess/rook"
-require "chess/bishop"
-require "chess/pawn"
-require "chess/knight"
-require "chess/queen"
-require "chess/king"
 module Chess
   class Board
     attr_accessor :squares
@@ -45,7 +39,7 @@ module Chess
         break unless new_x.between?(0, 7) && new_y.between?(0, 7)
         square = squares[new_x][new_y]
         unless square.nil?
-          moves.push([new_x, new_y]) unless square.color == start_square.color
+          moves.push [new_x, new_y] unless square.color == start_square.color
           break
         end
         moves.push [new_x, new_y]
@@ -67,9 +61,9 @@ module Chess
         if squares[x][y].nil? && hm[0].zero?
           result.push([x, y]) if hm[1].abs == 1 || (squares[x][y - 1].nil? && hm[1] == 2 && piece.color == BLACK) || ((squares[x][y + 1].nil?) && (hm[1] == -2) && (piece.color == WHITE))
         end
-        result.push([x, y]) if ((squares[x][y] != nil) && (squares[x][y].color != piece.color) && (hm[0] != 0))
+        result.push [x, y] if (squares[x][y] != nil) && (squares[x][y].color != piece.color) && (hm[0] != 0)
       end
-      result.push(piece.enpassant_move) unless piece.enpassant_move.empty?
+      result.push piece.enpassant_move unless piece.enpassant_move.empty?
       piece.possible_moves = result
     end
 
@@ -87,7 +81,7 @@ module Chess
       result = Array.new
       piece.hypo_moves.each do |hm|
         x, y = position_x + hm[0], position_y + hm[1]
-        result.push([x, y]) if (x.between?(0, 7) && y.between?(0, 7) && ((squares[x][y] == nil) || (squares[x][y].color != piece.color)))
+        result.push [x, y] if (x.between?(0, 7) && y.between?(0, 7) && ((squares[x][y] == nil) || (squares[x][y].color != piece.color)))
       end
       piece.possible_moves = result
     end
@@ -97,7 +91,7 @@ module Chess
     end
 
     def find_possible_moves(piece, x, y)
-      aux = case piece
+      case piece
         when Pawn then find_possible_moves_pawn piece, x, y 
         when Rook then find_possible_moves_rook piece, x, y 
         when Bishop then find_possible_moves_bishop piece, x, y 
@@ -105,21 +99,20 @@ module Chess
         else # "King" or "Knight"
           find_possible_moves_generic piece, x, y 
       end
-      aux
     end
 
     def find_king_coordinates(player) 
-      squares_iterator {|x, y| return [x, y] if (!squares[x][y].nil? && (squares[x][y].class == King) && (player.color == squares[x][y].color))}
+      squares_iterator {|x, y| return [x, y] if (!squares[x][y].nil? && (squares[x][y].class == Chess::King) && (player.color == squares[x][y].color))}
     end
 
     def in_check?(player, position = nil) #check if player is in check
       position ||= find_king_coordinates(player)
       squares_iterator do |x, y|
-        next if (squares[x][y].nil? || (player.color == squares[x][y].color))
+        next if squares[x][y].nil? || player.color == squares[x][y].color
         poss_moves = find_possible_moves squares[x][y], x, y
         return true if poss_moves.include? position
       end
-      return false
+      false
     end
 
     def make_move(from, to, piece_to_restore = nil)
@@ -136,26 +129,26 @@ module Chess
         piece_taken, squares[from[0]][from[1]]  = squares[to[0]][to[1]], piece_to_restore
       end
       squares[to[0]][to[1]] = piece_to_move
-      return piece_taken
+      piece_taken
     end
 
     def in_check_mate?(player)
       squares_iterator do |x, y|
-        next if squares[x][y].nil? || player.color != squares[x][y].color)
+        next if squares[x][y].nil? || player.color != squares[x][y].color
         poss_moves = find_possible_moves squares[x][y], x, y 
         poss_moves.each do |mov|
-          coord_to, coord_from = mov, x, y
-          taken_piece, temp = make_move(coord_from, coord_to), in_check? player 
+          coord_to, coord_from = mov, [x, y]
+          taken_piece, temp = make_move(coord_from, coord_to), in_check?(player)
           make_move coord_to, coord_from, taken_piece 
           return false unless temp
         end
       end
-      return true
+      true
     end
 
     def encastle_left(player) #encastle with the queen's rook
       player.color == WHITE ? line = 7 : line = 0
-      return false if (player.king_moved || player.queen_rook_moved) || (squares[1][line] || squares[2][line] || squares[3][line]) #return false if there's any piece between king and rook
+      return false if player.king_moved || player.queen_rook_moved || squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
       [[2, line],[3, line],[4, line]].each {  |pos| return false if in_check? player, pos  }
       make_move [4, line], [2, line]  #move king
       make_move [0, line], [3, line]  #move rook
@@ -165,7 +158,7 @@ module Chess
 
     def encastle_right(player) #encastle with the king's rook
       player.color == WHITE ? line = 7 : line = 0
-      return false if (player.king_moved || player.king_rook_moved) || (squares[5][line] || squares[6][line]) #return false if there's any piece between king and rook
+      return false if player.king_moved || player.king_rook_moved || squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
       [[4, line],[5, line],[6, line]].each {  |pos| return false if in_check?(player, pos)  }
       make_move [4, line], [6, line]  #move king
       make_move [7, line], [5, line]  #move rook
@@ -186,7 +179,7 @@ MESSAGE
       choice = "q" #computer player always promotes to queen
       unless current_player.computer_player
         choice = gets.chomp.downcase
-        while (choice.length != 1) || !(choice.match /q|r|n|b/)
+        while (choice.length != 1) || !(choice.match (/q|r|n|b/))
           puts "Invalid choice. Try again."
           choice = gets.chomp.downcase
         end
@@ -207,8 +200,8 @@ MESSAGE
     def enable_enpassant(piece, origin, position_x, position_y)
       if piece.class == Pawn && (position_y - origin[1]).abs == 2
         y_inc = piece.color == WHITE ? -1 : 1
-        squares[position_x + 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc] if position_x + 1 <= 7 && opponent_pawn? piece, squares[position_x + 1][position_y]
-        squares[position_x - 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc] if position_x - 1 >= 0 && opponent_pawn? piece, squares[position_x - 1][position_y]
+        squares[position_x + 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc] if position_x + 1 <= 7 && opponent_pawn?(piece, squares[position_x + 1][position_y])
+        squares[position_x - 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc] if position_x - 1 >= 0 && opponent_pawn?(piece, squares[position_x - 1][position_y])
       end
     end
 
@@ -230,8 +223,10 @@ MESSAGE
         if pc
           pclass = pc.class
           return false if pclass == Rook || pclass == Pawn || pclass == Queen 
-          num_white_bishops += 1 if (pclass == Bishop && pc.color == WHITE) || (pclass == Knight && pc.color == WHITE)
-          num_black_bishops += 1 if (pclass == Bishop && pc.color == BLACK) || (pclass == Knight && pc.color == BLACK)
+          num_white_bishops += 1 if pclass == Bishop && pc.color == WHITE
+          num_white_knights += 1 if pclass == Knight && pc.color == WHITE
+          num_black_bishops += 1 if pclass == Bishop && pc.color == BLACK
+          num_black_knights += 1 if pclass == Knight && pc.color == BLACK
         end
       end
       return false if num_white_bishops > 1 || num_black_bishops > 1 || num_black_knights > 2 || num_white_knights > 2 ||
@@ -240,23 +235,23 @@ MESSAGE
     end
 
     def get_piece_code(piece)
-      return piece.color[0] + "_N" if piece.class == Knight
-      return piece.color[0] + "_" + piece.class.to_s[0]
+      return piece.color[0] + "_N" if piece.class == Chess::Knight
+      piece.color[0] + "_" + piece.class.name.split("::").last[0]
     end
 
-  def display_board
+    def display_board
       puts "\n    x  0     1     2     3     4     5     6     7 "
       puts " y  #{TABLE_LINES[:l_t_corner]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_top_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:r_t_corner]}"
       (0..7).each do |row|    
         print "    #{TABLE_LINES[:v_line]}"
         (0..7).each do |col|
-            @squares[col][row].nil? ? print("    "): print("  " + UNICODE[get_piece_code(@squares[col][row])] + " ")
+            @squares[col][row].nil? ? print("    ") : print("  " + UNICODE[get_piece_code(@squares[col][row])] + " ")
             print " #{TABLE_LINES[:v_line]}"
         end
         puts
         print " #{row}  #{TABLE_LINES[:v_line]}"
         (0..7).each do |col|
-          @squares[col][row].nil? ? print("    "): print(" " + get_piece_code(@squares[col][row]))
+          @squares[col][row].nil? ? print("    ") : print(" " + get_piece_code(@squares[col][row]))
           print " #{TABLE_LINES[:v_line]}"
         end
         puts "\n    #{TABLE_LINES[:v_l_join]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:v_r_join]}" if !(row == 7)

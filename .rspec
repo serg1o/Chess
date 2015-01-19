@@ -1,6 +1,5 @@
 --color
 -f doc
--r spec_helper
 -r chess
 --warnings
 spec/lib/**/*_spec.rb

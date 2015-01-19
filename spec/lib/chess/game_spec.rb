@@ -1,4 +1,3 @@
-require "chess/game"
 include Chess
 describe Game do
 
@@ -1263,7 +1262,7 @@ describe Game do
     end
 
     it "white cannot move" do
-      #check_mate_by? doesn't verify if the opponents king is in check but only if he can't move to a position not in check
+      #in_check_mate? doesn't verify if the player's king is in check but only if he can't move to a position not in check
       expect(@game.board.in_check_mate?(@player1)).to eql(true)
       expect(@game.board.in_check?(@player1)).to eql(false)
     end
