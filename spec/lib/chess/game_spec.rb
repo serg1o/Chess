@@ -1,5 +1,5 @@
-require_relative '../chess'
- 
+require "chess/game"
+include Chess
 describe Game do
 
   before(:all) do
