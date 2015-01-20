@@ -1,9 +1,10 @@
-require "yaml"
 module Chess
   class Game
-    attr_accessor :board, :player1, :player2, :game_file, :next_to_play
+    attr_accessor :board, :player1, :player2, :game_file, :next_to_play, :game_positions, :fifty_moves_counter
     def initialize(board = Board.new)
       @board = board
+      @game_positions = Hash.new(0) #used to check for threefold repetition
+      @fifty_moves_counter = 0
     end
 
     def save_game
@@ -78,7 +79,7 @@ module Chess
           mock_board.find_possible_moves(mock_board.squares[x][y], x, y).each do |m|
             p_taken, score = mock_board.make_move([x, y], m), 0
             unless p_taken.nil?
-              p_taken_class = p_taken.class.to_s
+              p_taken_class = p_taken.class.name.split("::").last
               score = SCORES[p_taken_class]
               opponent_in_check = mock_board.in_check?(opponent)
               opponent_in_check_mate = mock_board.in_check_mate?(opponent) && opponent_in_check
@@ -95,7 +96,7 @@ module Chess
     end
 
     def get_max_score(list)
-      list.map {  |elem| elem[0] }.max || 0 #if list is empty return 0
+      list.map { |elem| elem[0] }.max || 0 #if list is empty return 0
     end
 
     def get_computer_move(board, player, opponent)
@@ -103,7 +104,7 @@ module Chess
       aux_list, m_board, opp, plr = Array.new, mock_board.dup, opponent.dup, player.dup
       get_moves_and_score(mock_board, player, opponent).each do |m|
         p_taken = m_board.make_move m[1], m[2]
-        subtract_score = get_max_score get_moves_and_score m_board, opp, plr
+        subtract_score = get_max_score(get_moves_and_score(m_board, opp, plr))
         m_board.make_move m[2], m[1], p_taken
         aux_elem = m
         aux_elem[0] -= subtract_score
@@ -111,14 +112,14 @@ module Chess
       end
       aux_list.shuffle!
       pc_move, pc_move_score = [aux_list.first[1], aux_list.first[2]], aux_list.first[0]
-      aux_list.each { |mv| pc_move, pc_move_score = [mv[1], mv[2]], mv[0] if m.first > pc_move_score  }
+      aux_list.each { |mv| pc_move, pc_move_score = [mv[1], mv[2]], mv[0] if mv.first > pc_move_score  }
       return [pc_move[0].join, pc_move[1].join]
     end
 
     def get_xy
       loop do
         xy = gets.chomp
-        if ((xy.length == 2) && (xy.match /[0-7][0-7]|88|99/)) || ((xy.length == 1) && (xy.match /s|S|q|Q/))
+        if ((xy.length == 2) && (xy.match (/[0-7][0-7]|88|99/))) || ((xy.length == 1) && (xy.match (/s|S|q|Q/)))
           return xy
         else
           board.display_board
@@ -127,9 +128,16 @@ module Chess
       end
     end
 
+    def draw?
+      return "The game ended in a draw due to insufficient material." if board.insufficient_material?
+      return "The game ended in a draw due to threefold repetition." if (!game_positions.empty? && game_positions.collect { |k, v| v }.max > 2)
+      return "The game ended in a draw - fifty moves rule." if fifty_moves_counter >= 100 #100 moves = 50 turns for each player
+      nil
+    end
+
     def player_turn(player)
-      if board.draw?
-        print_message "The game ended in a tie."
+      if draw = draw?
+        print_board_and_message draw
         return true
       end
       opponent = (@player1 == player) ? @player2 : @player1
@@ -145,7 +153,7 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
         sleep(1) if player.computer_player && opponent.computer_player
         comp_move = Array.new
         if player.computer_player
-          comp_move = get_computer_move(board, player.dup, opponent.dup)
+          comp_move = get_computer_move board, player.dup, opponent.dup
           xy_origin = comp_move[0]
         else
           xy_origin = get_xy
@@ -166,7 +174,7 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
         end
         coord_from = xy_origin.split String.new
         coord_from = [coord_from[0].to_i, coord_from[1].to_i]
-        if (board.squares[coord_from[0]][coord_from[1]].nil?)
+        if board.squares[coord_from[0]][coord_from[1]].nil?
           print_board_and_message "There's no piece to move at those coordinates. Try again."
           next
         elsif board.squares[coord_from[0]][coord_from[1]].color != player.color
@@ -187,39 +195,44 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
             board.make_move coord_to, coord_from, piece_at_dest
             next
           end
+          game_positions[board.squares] += 1
+          # if a piece has been taken or a if a pawn was moved - reset fifty_moves_counter else increment fifty_moves_counter
+          (piece_at_dest || piece.class == Pawn) ? @fifty_moves_counter = 0 : @fifty_moves_counter += 1
           board.clear_enpassant player #revoke the possibility of making en passant moves
           board.enable_enpassant piece, coord_from, coord_to[0], coord_to[1] #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
-          board.promote_pawn(coord_to, player) if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
+          board.promote_pawn coord_to, player if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
           board.update_pawn_hypo_moves piece, coord_to, coord_from[1]
           if board.in_check? opponent
             if board.in_check_mate? opponent
-              print_board_and_message("Checkmate! #{player.color} player has won the game.")
+              print_board_and_message "Checkmate! #{player.color} player has won the game."
               return true
             end
             print_message "#{opponent.color} king is in check!"
           else #check for stalemate
             if board.in_check_mate? opponent #check if any possible move results in check while not being in check in the current position
-              print_board_and_message("The game ended in a stalemate.")
+              print_board_and_message "The game ended in a stalemate."
               return true
             end
           end
-          check_rooks_king_moved(piece, player, opponent, coord_from, coord_to)
+          check_rooks_king_moved piece, player, opponent, coord_from, coord_to
           break
         else
-          print_board_and_message("That move is not allowed. Choose again.")
+          print_board_and_message "That move is not allowed. Choose again."
         end
       end
       nil
     end
 
     def select_game_mode
-      puts "Choose game mode:"
-      puts "1 - Both players are humans"
-      puts "2 - Player1 (white) is human and player2 (black) is the computer"
-      puts "3 - Player2 (black) is human and player1 (white) is the computer"
-      puts "4 - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)"
+      puts <<-HERE
+Choose game mode:
+1 - Both players are humans
+2 - Player1 (white) is human and player2 (black) is the computer
+3 - Player2 (black) is human and player1 (white) is the computer
+4 - Play the computer against the computer (Use Ctrl+C if you wish to terminate the program.)
+      HERE
       choice = gets.chomp.downcase
-      until choice.length == 1 && choice.match /[1-4]/
+      until choice.length == 1 && choice.match(/[1-4]/)
         puts "Invalid choice. Try again."
         choice = gets.chomp.downcase
       end

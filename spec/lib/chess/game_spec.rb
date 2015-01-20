@@ -1,4 +1,3 @@
-require "chess/game"
 include Chess
 describe Game do
 
@@ -1263,7 +1262,7 @@ describe Game do
     end
 
     it "white cannot move" do
-      #check_mate_by? doesn't verify if the opponents king is in check but only if he can't move to a position not in check
+      #in_check_mate? doesn't verify if the player's king is in check but only if he can't move to a position not in check
       expect(@game.board.in_check_mate?(@player1)).to eql(true)
       expect(@game.board.in_check?(@player1)).to eql(false)
     end
@@ -1765,63 +1764,63 @@ describe Game do
     end
       
     it "2 lone kings result in a draw" do
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and a white Knight result in a draw" do
       @game.board.squares[0][0] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and two white Knights result in a draw" do
       @game.board.squares[0][0] = Knight.new(WHITE)
       @game.board.squares[0][1] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 3 white Knights does not result in a draw" do
       @game.board.squares[0][0] = Knight.new(WHITE)
       @game.board.squares[0][1] = Knight.new(WHITE)
       @game.board.squares[0][2] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and a black Knight result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and two black Knights result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(BLACK)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 3 black Knights does not result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(BLACK)
       @game.board.squares[0][2] = Knight.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings, 1 black Knight and 1 white Knight result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 2 black Knights and 1 white knight result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(BLACK)
       @game.board.squares[0][2] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 1 black Knight and 2 white knights result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(WHITE)
       @game.board.squares[0][2] = Knight.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 2 black Knights, 1 white knight and 1 white bishop does not result in a draw" do
@@ -1829,68 +1828,68 @@ describe Game do
       @game.board.squares[0][1] = Knight.new(BLACK)
       @game.board.squares[0][2] = Knight.new(WHITE)
       @game.board.squares[1][2] = Bishop.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and 1 black Knight, 1 white knight and 1 black bishop does not result in a draw" do
       @game.board.squares[0][0] = Knight.new(BLACK)
       @game.board.squares[0][1] = Knight.new(WHITE)
       @game.board.squares[0][2] = Bishop.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and 1 white Knight and 1 black bishop result in a draw" do
       @game.board.squares[0][1] = Knight.new(WHITE)
       @game.board.squares[0][2] = Bishop.new(BLACK)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 1 black Knight and 1 white bishop result in a draw" do
       @game.board.squares[0][1] = Knight.new(BLACK)
       @game.board.squares[0][2] = Bishop.new(WHITE)
-      expect(@game.board.draw?).to eql(true)
+      expect(@game.draw?).to be_truthy
     end
 
     it "2 kings and 1 black Knight and 1 black bishop does not result in a draw" do
       @game.board.squares[0][1] = Knight.new(BLACK)
       @game.board.squares[0][2] = Bishop.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and 1 WHITE Knight and 1 WHITE bishop does not result in a draw" do
       @game.board.squares[0][1] = Knight.new(WHITE)
       @game.board.squares[0][2] = Bishop.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and a black pawn does not result in a draw" do
       @game.board.squares[0][6] = Pawn.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
    
     it "2 kings and a white pawn does not result in a draw" do
       @game.board.squares[0][6] = Pawn.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and a black rook does not result in a draw" do
       @game.board.squares[0][6] = Rook.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
    
     it "2 kings and a white rook does not result in a draw" do
       @game.board.squares[0][6] = Rook.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
     it "2 kings and a black queen does not result in a draw" do
       @game.board.squares[0][6] = Queen.new(BLACK)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
    
     it "2 kings and a white queen does not result in a draw" do
       @game.board.squares[0][6] = Queen.new(WHITE)
-      expect(@game.board.draw?).to eql(false)
+      expect(@game.draw?).to be_falsey
     end
 
   end
