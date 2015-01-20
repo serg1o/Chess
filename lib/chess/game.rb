@@ -1,8 +1,10 @@
 module Chess
   class Game
-    attr_accessor :board, :player1, :player2, :game_file, :next_to_play
+    attr_accessor :board, :player1, :player2, :game_file, :next_to_play, :game_positions, :fifty_moves_counter
     def initialize(board = Board.new)
       @board = board
+      @game_positions = Hash.new(0) #used to check for threefold repetition
+      @fifty_moves_counter = 0
     end
 
     def save_game
@@ -126,9 +128,16 @@ module Chess
       end
     end
 
+    def draw?
+      return "The game ended in a draw due to insufficient material." if board.insufficient_material?
+      return "The game ended in a draw due to threefold repetition." if (!game_positions.empty? && game_positions.collect { |k, v| v }.max > 2)
+      return "The game ended in a draw - fifty moves rule." if fifty_moves_counter >= 100 #100 moves = 50 turns for each player
+      nil
+    end
+
     def player_turn(player)
-      if board.draw?
-        print_board_and_message "The game ended in a tie."
+      if draw = draw?
+        print_board_and_message draw
         return true
       end
       opponent = (@player1 == player) ? @player2 : @player1
@@ -186,6 +195,9 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
             board.make_move coord_to, coord_from, piece_at_dest
             next
           end
+          game_positions[board.squares] += 1
+          # if a piece has been taken or a if a pawn was moved - reset fifty_moves_counter else increment fifty_moves_counter
+          (piece_at_dest || piece.class == Pawn) ? fifty_moves_counter = 0 : @fifty_moves_counter += 1
           board.clear_enpassant player #revoke the possibility of making en passant moves
           board.enable_enpassant piece, coord_from, coord_to[0], coord_to[1] #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
           board.promote_pawn coord_to, player if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
@@ -217,7 +229,7 @@ Choose game mode:
 1 - Both players are humans
 2 - Player1 (white) is human and player2 (black) is the computer
 3 - Player2 (black) is human and player1 (white) is the computer
-4 - Play the computer against the computer (Warning: this may result in an infinite loop. Use Ctrl+C to terminate the program.)
+4 - Play the computer against the computer (Use Ctrl+C if you wish to terminate the program.)
       HERE
       choice = gets.chomp.downcase
       until choice.length == 1 && choice.match(/[1-4]/)

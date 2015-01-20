@@ -216,7 +216,7 @@ MESSAGE
       end
     end
 
-    def draw?
+    def insufficient_material?
       num_white_bishops, num_white_knights, num_black_bishops, num_black_knights = 0, 0, 0, 0
       squares_iterator do |x, y|
         pc = squares[x][y]
