@@ -197,7 +197,7 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
           end
           game_positions[board.squares] += 1
           # if a piece has been taken or a if a pawn was moved - reset fifty_moves_counter else increment fifty_moves_counter
-          (piece_at_dest || piece.class == Pawn) ? fifty_moves_counter = 0 : @fifty_moves_counter += 1
+          (piece_at_dest || piece.class == Pawn) ? @fifty_moves_counter = 0 : @fifty_moves_counter += 1
           board.clear_enpassant player #revoke the possibility of making en passant moves
           board.enable_enpassant piece, coord_from, coord_to[0], coord_to[1] #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
           board.promote_pawn coord_to, player if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
