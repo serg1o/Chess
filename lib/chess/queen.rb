@@ -1,7 +1,3 @@
 module Chess
-  class Queen < Piece
-    def initialize(color)
-      super
-    end
-  end
+  class Queen < Piece; end
 end
