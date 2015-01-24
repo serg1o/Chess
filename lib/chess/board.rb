@@ -1,14 +1,36 @@
 module Chess
   class Board
-    attr_accessor :squares
+    attr_accessor :squares, :last_selected_piece, :recent_moves
     def initialize
       @squares = Array.new(8) { Array.new(8) }
+      @last_selected_piece = nil
+      @recent_moves = Array.new(7)
+      @recent_moves[0] = :head
     end
 
     def squares_iterator
       (0..7).each do |x|
         (0..7).each {|y| yield x, y}
       end
+    end
+
+    def insert_move_in_undo_list
+      i_head = recent_moves.index(:head)
+      new_index_head = i_head == recent_moves.size - 1 ? 0 : i_head + 1
+      recent_moves[i_head] = @squares.to_yaml
+      recent_moves[new_index_head] = :head
+    end
+
+    def undo_last_move(load_squares = true)
+      i_head = recent_moves.index(:head)
+      new_index_head = i_head == 0 ? recent_moves.size - 1 : i_head - 1
+      if load_squares
+        last_move = recent_moves[new_index_head]
+        return if last_move.nil?
+        @squares = YAML.load(last_move)
+      end
+      recent_moves[i_head] = nil
+      recent_moves[new_index_head] = :head
     end
 
     def create_pieces
@@ -147,22 +169,20 @@ module Chess
     end
 
     def encastle_left(player) #encastle with the queen's rook
-      player.color == WHITE ? line = 7 : line = 0
-      return false if player.king_moved || player.queen_rook_moved || squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
+      line = player.color == WHITE ? 7 : 0
+      return false if squares[0][line].nil? || squares[0][line].moved || squares[4][line].nil? || squares[4][line].moved  || squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
       [[2, line],[3, line],[4, line]].each {  |pos| return false if in_check? player, pos  }
       make_move [4, line], [2, line]  #move king
       make_move [0, line], [3, line]  #move rook
-      player.king_moved = true
       true
     end
 
     def encastle_right(player) #encastle with the king's rook
-      player.color == WHITE ? line = 7 : line = 0
-      return false if player.king_moved || player.king_rook_moved || squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
+      line = player.color == WHITE ? 7 : 0
+      return false if squares[7][line].nil? || squares[7][line].moved || squares[4][line].nil? || squares[4][line].moved || squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
       [[4, line],[5, line],[6, line]].each {  |pos| return false if in_check?(player, pos)  }
       make_move [4, line], [6, line]  #move king
       make_move [7, line], [5, line]  #move rook
-      player.king_moved = true
       true
     end
 
@@ -245,13 +265,15 @@ MESSAGE
       (0..7).each do |row|    
         print "    #{TABLE_LINES[:v_line]}"
         (0..7).each do |col|
-            @squares[col][row].nil? ? print("    ") : print("  " + UNICODE[get_piece_code(@squares[col][row])] + " ")
-            print " #{TABLE_LINES[:v_line]}"
+          bold_italic = @last_selected_piece == [col, row] ?  ["\033[1m\e[3m", "\e[23m\033[0m"] : ["", ""]
+          @squares[col][row].nil? ? print("    ") : print("  " + bold_italic.first + UNICODE[get_piece_code(@squares[col][row])] + bold_italic.last + " ")
+          print " #{TABLE_LINES[:v_line]}"
         end
         puts
         print " #{row}  #{TABLE_LINES[:v_line]}"
         (0..7).each do |col|
-          @squares[col][row].nil? ? print("    ") : print(" " + get_piece_code(@squares[col][row]))
+          bold_italic = @last_selected_piece == [col, row] ?  ["\033[1m\e[3m", "\e[23m\033[0m"] : ["", ""]
+          @squares[col][row].nil? ? print("    ") : print(" " + bold_italic.first + get_piece_code(@squares[col][row]) + bold_italic.last)
           print " #{TABLE_LINES[:v_line]}"
         end
         puts "\n    #{TABLE_LINES[:v_l_join]}#{(TABLE_LINES[:h_line]*5 + TABLE_LINES[:mid_join])*7}#{TABLE_LINES[:h_line]*5 + TABLE_LINES[:v_r_join]}" if !(row == 7)

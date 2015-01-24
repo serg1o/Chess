@@ -17,6 +17,6 @@ module Chess
     h_line: "\u2500"
   }
   SCORES = { "Queen" => 9, "Rook" => 5, "Bishop" => 3, "Knight" => 3, "Pawn" => 1 }
-  files = %w[player.rb piece.rb rook.rb pawn.rb king.rb queen.rb bishop.rb knight.rb board.rb game.rb]
-  files.each { |file| require_relative "../lib/chess/" + file }
+  files = %w[player piece rook pawn king queen bishop knight board game]
+  files.each { |file| require_relative "../lib/chess/" + file + ".rb" }
 end
