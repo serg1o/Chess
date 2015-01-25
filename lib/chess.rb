@@ -18,5 +18,6 @@ module Chess
   }
   SCORES = { "Queen" => 9, "Rook" => 5, "Bishop" => 3, "Knight" => 3, "Pawn" => 1 }
   library = %i[ Player Piece Rook Pawn King Queen Bishop Knight Board Game  ]
-  library.each {  |class| autoload class, "chess/#{class}"  }
+  library.each {  |class| autoload class, "chess/#{class.to_s.downcase}"  }
+
 end

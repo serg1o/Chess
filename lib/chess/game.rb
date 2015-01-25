@@ -57,21 +57,6 @@ module Chess
       print_message msg
     end
 
-    #verify if the player's king or rooks moved or if any of the opponents rooks was taken in order to invalidate the corresponding encastling move
-    def check_rooks_king_moved(piece, player, opponent, coord_from, coord_to)
-      if piece.class == King
-        player.king_moved = true
-      else
-        player_first_rank = (player.color == BLACK) ? 0 : 7
-        opponent_first_rank = 7 - player_first_rank
-        player.queen_rook_moved = true if coord_from == [0, player_first_rank]
-        player.king_rook_moved = true if coord_from == [7, player_first_rank]
-        # case when player takes one of the opponent's rooks at their initial positions
-        opponent.queen_rook_moved = true if coord_to == [0, opponent_first_rank]
-        opponent.king_rook_moved = true if coord_to == [7, opponent_first_rank]
-      end
-    end
-
     def get_moves_and_score(mock_board, player, opponent)
       list_moves = Array.new
       mock_board.squares_iterator do |x, y|
@@ -119,12 +104,9 @@ module Chess
     def get_xy
       loop do
         xy = gets.chomp
-        if ((xy.length == 2) && (xy.match (/[0-7][0-7]|88|99/))) || ((xy.length == 1) && (xy.match (/s|S|q|Q/)))
-          return xy
-        else
-          board.display_board
-          puts "\n\nInvalid input. Try again.\n\n\n"
-        end
+        return xy if ((xy.length == 2) && (xy.match (/[0-7][0-7]|88|99/))) || ((xy.length == 1) && (xy.match (/s|S|q|Q|u|U/)))
+        board.display_board
+        puts "\n\nInvalid input. Try again.\n\n\n"
       end
     end
 
@@ -135,6 +117,11 @@ module Chess
       nil
     end
 
+    def reset_counters
+      @fifty_moves_counter = 0
+      @game_positions.clear
+    end
+
     def player_turn(player)
       if draw = draw?
         print_board_and_message draw
@@ -142,14 +129,13 @@ module Chess
       end
       opponent = (@player1 == player) ? @player2 : @player1
       loop do
-        puts "\n#{player.order_player}, #{player.color}\'s turn"
+        puts <<-MSG
+Type 's' to save the game. Type 'q' to exit the game without saving.
+Type 'u' to undo your last move (up to 3 turns)
+\n#{player.order_player}, #{player.color}\'s turn
+        MSG
         board.display_board
-        puts <<-HERE
-\nWrite 's' to save the game.
-Write 'q' to exit the game without saving.
-Choose the coordinates of the piece to move (xy),
-or write '88' to encastle with the queen's rook or '99' to encastle with the king's rook.
-        HERE
+        puts "\nChoose the coordinates of the piece to move (xy),\nor write '88' to encastle with the queen's rook or '99' to encastle with the king's rook.\n"
         sleep(1) if player.computer_player && opponent.computer_player
         comp_move = Array.new
         if player.computer_player
@@ -161,6 +147,13 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
         return true if xy_origin.downcase == "q"
         if xy_origin.downcase == "s"
           save_game
+          next
+        end
+        if xy_origin.downcase == "u"
+          board.undo_last_move
+          board.display_board
+          sleep(1)
+          board.undo_last_move
           next
         end
         if xy_origin == "88"
@@ -181,23 +174,29 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
           print_board_and_message "You can't move your opponent's pieces. Try again."
           next
         end
+        board.last_selected_piece = coord_from
         piece = board.squares[coord_from[0]][coord_from[1]]
         board.find_possible_moves(piece, coord_from[0], coord_from[1])
         board.display_board
-        puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n\n"
+        puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n"
         xy_dest = player.computer_player ? comp_move[1] : get_xy 
         coord_to = xy_dest.split String.new
         coord_to = [coord_to[0].to_i, coord_to[1].to_i]
-        if piece.possible_moves.include? [coord_to[0], coord_to[1]]    
+        if piece.possible_moves.include? [coord_to[0], coord_to[1]]
+          board.insert_move_in_undo_list   
           piece_at_dest = board.make_move coord_from, coord_to    
           if board.in_check? player
+            board.last_selected_piece = nil
             print_board_and_message "You can't make that move. You'll be in check."
             board.make_move coord_to, coord_from, piece_at_dest
+            board.undo_last_move(false)
             next
           end
+          board.squares[coord_to[0]][coord_to[1]].moved ||= true
+          board.last_selected_piece = coord_to
           game_positions[board.squares] += 1
-          # if a piece has been taken or a if a pawn was moved - reset fifty_moves_counter else increment fifty_moves_counter
-          (piece_at_dest || piece.class == Pawn) ? @fifty_moves_counter = 0 : @fifty_moves_counter += 1
+          # if a piece has been taken or if a pawn was moved - reset fifty_moves_counter and clear game_positions else increment fifty_moves_counter
+          (piece_at_dest || piece.class == Pawn) ? reset_counters : @fifty_moves_counter += 1
           board.clear_enpassant player #revoke the possibility of making en passant moves
           board.enable_enpassant piece, coord_from, coord_to[0], coord_to[1] #if piece is a pawn and moves two squares check if opponent has won the right to an enpassant move
           board.promote_pawn coord_to, player if piece.class == Pawn && (coord_to[1].zero? || coord_to[1] == 7)
@@ -214,9 +213,9 @@ or write '88' to encastle with the queen's rook or '99' to encastle with the kin
               return true
             end
           end
-          check_rooks_king_moved piece, player, opponent, coord_from, coord_to
           break
         else
+          board.last_selected_piece = nil
           print_board_and_message "That move is not allowed. Choose again."
         end
       end
