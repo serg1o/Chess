@@ -90,13 +90,11 @@ module Chess
     end
 
     def find_possible_moves_rook(piece, position_x, position_y)
-      horiz_moves, vertical_moves = get_line_moves(position_x, position_y, 1, 0, piece), get_line_moves(position_x, position_y, 0, 1, piece)
-      piece.possible_moves = horiz_moves + vertical_moves
+      piece.possible_moves = get_line_moves(position_x, position_y, 1, 0, piece) + get_line_moves(position_x, position_y, 0, 1, piece)
     end
 
     def find_possible_moves_bishop(piece, position_x, position_y)
-      diag1_moves, diag2_moves = get_line_moves(position_x, position_y, 1, 1, piece), get_line_moves(position_x, position_y, 1, -1, piece)
-      piece.possible_moves = diag1_moves + diag2_moves
+      piece.possible_moves = get_line_moves(position_x, position_y, 1, 1, piece) + get_line_moves(position_x, position_y, 1, -1, piece)
     end
 
     def find_possible_moves_generic(piece, position_x, position_y)
@@ -148,7 +146,7 @@ module Chess
         end
         squares[from[0]][from[1]] = nil
       else
-        piece_taken, squares[from[0]][from[1]]  = squares[to[0]][to[1]], piece_to_restore
+        piece_taken, squares[from[0]][from[1]] = squares[to[0]][to[1]], piece_to_restore
       end
       squares[to[0]][to[1]] = piece_to_move
       piece_taken
@@ -170,8 +168,9 @@ module Chess
 
     def encastle_left(player) #encastle with the queen's rook
       line = player.color == WHITE ? 7 : 0
-      return false if squares[0][line].nil? || squares[0][line].moved || squares[4][line].nil? || squares[4][line].moved  || squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
-      [[2, line],[3, line],[4, line]].each {  |pos| return false if in_check? player, pos  }
+      return false if squares[0][line].nil? || squares[0][line].moved || squares[4][line].nil? || squares[4][line].moved ||
+                      squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
+      [[2, line],[3, line],[4, line]].each { |pos| return false if in_check? player, pos }
       make_move [4, line], [2, line]  #move king
       make_move [0, line], [3, line]  #move rook
       true
@@ -179,8 +178,9 @@ module Chess
 
     def encastle_right(player) #encastle with the king's rook
       line = player.color == WHITE ? 7 : 0
-      return false if squares[7][line].nil? || squares[7][line].moved || squares[4][line].nil? || squares[4][line].moved || squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
-      [[4, line],[5, line],[6, line]].each {  |pos| return false if in_check?(player, pos)  }
+      return false if squares[7][line].nil? || squares[7][line].moved || squares[4][line].nil? || squares[4][line].moved ||
+                      squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
+      [[4, line],[5, line],[6, line]].each { |pos| return false if in_check?(player, pos) }
       make_move [4, line], [6, line]  #move king
       make_move [7, line], [5, line]  #move rook
       true
@@ -189,13 +189,7 @@ module Chess
     def promote_pawn(at_pos, current_player)
       display_board
       x, y = at_pos
-      puts <<MESSAGE
-Choose which piece do you want to promote the pawn to:
-q - Queen
-r - Rook
-n - Knight
-b - Bishop
-MESSAGE
+      puts "Choose which piece do you want to promote the pawn to:\nq - Queen\nr - Rook\nn - Knight\nb - Bishop"
       choice = "q" #computer player always promotes to queen
       unless current_player.computer_player
         choice = gets.chomp.downcase
@@ -211,6 +205,7 @@ MESSAGE
         when "n" then Knight.new color 
         when "b" then Bishop.new color 
       end
+      squares[x][y].moved = true
     end
 
     def opponent_pawn?(pawn, opponent_piece)
@@ -269,8 +264,7 @@ MESSAGE
           @squares[col][row].nil? ? print("    ") : print("  " + bold_italic.first + UNICODE[get_piece_code(@squares[col][row])] + bold_italic.last + " ")
           print " #{TABLE_LINES[:v_line]}"
         end
-        puts
-        print " #{row}  #{TABLE_LINES[:v_line]}"
+        print "\n #{row}  #{TABLE_LINES[:v_line]}"
         (0..7).each do |col|
           bold_italic = @last_selected_piece == [col, row] ?  ["\033[1m\e[3m", "\e[23m\033[0m"] : ["", ""]
           @squares[col][row].nil? ? print("    ") : print(" " + bold_italic.first + get_piece_code(@squares[col][row]) + bold_italic.last)
