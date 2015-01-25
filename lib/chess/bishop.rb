@@ -1,7 +1,3 @@
 module Chess
-  class Bishop < Piece
-    def initialize(color)
-      super
-    end
-  end
+  class Bishop < Piece; end
 end
