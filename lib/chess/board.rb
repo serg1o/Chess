@@ -9,25 +9,23 @@ module Chess
     end
 
     def squares_iterator
-      (0..7).each do |x|
-        (0..7).each {|y| yield x, y}
-      end
+      (0..7).each { |x| (0..7).each { |y| yield x, y  } }
     end
 
     def insert_move_in_undo_list
-      i_head = recent_moves.index(:head)
+      i_head = recent_moves.index :head
       new_index_head = i_head == recent_moves.size - 1 ? 0 : i_head + 1
       recent_moves[i_head] = @squares.to_yaml
       recent_moves[new_index_head] = :head
     end
 
     def undo_last_move(load_squares = true)
-      i_head = recent_moves.index(:head)
+      i_head = recent_moves.index :head
       new_index_head = i_head == 0 ? recent_moves.size - 1 : i_head - 1
       if load_squares
         last_move = recent_moves[new_index_head]
         return if last_move.nil?
-        @squares = YAML.load(last_move)
+        @squares = YAML.load last_move
       end
       recent_moves[i_head] = nil
       recent_moves[new_index_head] = :head
@@ -36,25 +34,25 @@ module Chess
     def create_pieces
       (0..7).each {|pos| @squares[pos][1] = Pawn.new(BLACK)}
       (0..7).each {|pos| @squares[pos][6] = Pawn.new(WHITE)}
-      @squares[0][0] = Rook.new(BLACK)
-      @squares[7][0] = Rook.new(BLACK)
-      @squares[0][7] = Rook.new(WHITE)
-      @squares[7][7] = Rook.new(WHITE)
-      @squares[1][0] = Knight.new(BLACK)
-      @squares[6][0] = Knight.new(BLACK)
-      @squares[1][7] = Knight.new(WHITE)
-      @squares[6][7] = Knight.new(WHITE)
-      @squares[2][0] = Bishop.new(BLACK)
-      @squares[5][0] = Bishop.new(BLACK)
-      @squares[2][7] = Bishop.new(WHITE)
-      @squares[5][7] = Bishop.new(WHITE)
-      @squares[3][0] = Queen.new(BLACK)
-      @squares[3][7] = Queen.new(WHITE)
-      @squares[4][0] = King.new(BLACK)
-      @squares[4][7] = King.new(WHITE)
+      @squares[0][0] = Rook.new BLACK 
+      @squares[7][0] = Rook.new BLACK 
+      @squares[0][7] = Rook.new WHITE 
+      @squares[7][7] = Rook.new WHITE 
+      @squares[1][0] = Knight.new BLACK 
+      @squares[6][0] = Knight.new BLACK 
+      @squares[1][7] = Knight.new WHITE 
+      @squares[6][7] = Knight.new WHITE 
+      @squares[2][0] = Bishop.new BLACK 
+      @squares[5][0] = Bishop.new BLACK 
+      @squares[2][7] = Bishop.new WHITE 
+      @squares[5][7] = Bishop.new WHITE 
+      @squares[3][0] = Queen.new BLACK 
+      @squares[3][7] = Queen.new WHITE 
+      @squares[4][0] = King.new BLACK 
+      @squares[4][7] = King.new WHITE 
     end
 
-    def line_moves(origin_x, origin_y, inc_x, inc_y, start_square, direction)
+    def line_moves origin_x, origin_y, inc_x, inc_y, start_square, direction
       moves, i, j = Array.new, direction * inc_x, direction * inc_y
       loop do
         new_x, new_y = origin_x + i, origin_y + j
@@ -71,7 +69,7 @@ module Chess
       return moves
     end
 
-    def get_line_moves(origin_x, origin_y, inc_x, inc_y, start_square)
+    def get_line_moves origin_x, origin_y, inc_x, inc_y, start_square
       line_moves(origin_x, origin_y, inc_x, inc_y, start_square, 1) + line_moves(origin_x, origin_y, inc_x, inc_y, start_square, -1)
     end
 
@@ -83,7 +81,7 @@ module Chess
         if squares[x][y].nil? && hm[0].zero?
           result.push([x, y]) if hm[1].abs == 1 || (squares[x][y - 1].nil? && hm[1] == 2 && piece.color == BLACK) || ((squares[x][y + 1].nil?) && (hm[1] == -2) && (piece.color == WHITE))
         end
-        result.push [x, y] if (squares[x][y] != nil) && (squares[x][y].color != piece.color) && (hm[0] != 0)
+        result.push [x, y] unless squares[x][y].nil? || squares[x][y].color == piece.color || hm[0].zero?
       end
       result.push piece.enpassant_move unless piece.enpassant_move.empty?
       piece.possible_moves = result
@@ -106,7 +104,7 @@ module Chess
       piece.possible_moves = result
     end
 
-    def find_possible_moves_queen(piece, x, y)
+    def find_possible_moves_queen piece, x, y
       piece.possible_moves = find_possible_moves_bishop(piece, x, y) + find_possible_moves_rook(piece, x, y)
     end
 
@@ -212,7 +210,7 @@ module Chess
       opponent_piece.class == Pawn && opponent_piece.color != pawn.color
     end
 
-    def enable_enpassant(piece, origin, position_x, position_y)
+    def enable_enpassant piece, origin, position_x, position_y
       if piece.class == Pawn && (position_y - origin[1]).abs == 2
         y_inc = piece.color == WHITE ? -1 : 1
         squares[position_x + 1][position_y].enpassant_move = [origin[0], origin[1] + y_inc] if position_x + 1 <= 7 && opponent_pawn?(piece, squares[position_x + 1][position_y])
