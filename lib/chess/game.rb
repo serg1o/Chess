@@ -1,10 +1,12 @@
 module Chess
   class Game
-    attr_accessor :board, :player1, :player2, :game_file, :next_to_play, :game_positions, :fifty_moves_counter
+    attr_accessor :board, :player1, :player2, :game_file, :next_to_play, :game_positions, :fifty_moves_counter, :recent_moves
     def initialize(board = Board.new)
       @board = board
       @game_positions = Hash.new(0) #used to check for threefold repetition
       @fifty_moves_counter = 0
+      @recent_moves = Array.new(7)
+      @recent_moves[0] = :head
     end
 
     def save_game
@@ -122,6 +124,29 @@ module Chess
       @game_positions.clear
     end
 
+    def insert_move_in_undo_list
+      i_head = recent_moves.index(:head)
+      new_index_head = i_head == recent_moves.size - 1 ? 0 : i_head + 1
+      recent_moves[i_head] = [board.squares.to_yaml, @game_positions.dup, @fifty_moves_counter]
+      deleted_move = recent_moves[new_index_head]
+      recent_moves[new_index_head] = :head
+      deleted_move
+    end
+
+    def undo_last_move(saved_move = nil, load_squares = true)
+      i_head = recent_moves.index(:head)
+      new_index_head = i_head == 0 ? recent_moves.size - 1 : i_head - 1
+      if load_squares
+        last_move = recent_moves[new_index_head]
+        return if last_move.nil?
+        board.squares = YAML.load(last_move[0])
+        @game_positions = last_move[1]
+        @fifty_moves_counter = last_move[2]
+      end
+      recent_moves[i_head] = saved_move
+      recent_moves[new_index_head] = :head
+    end
+
     def player_turn(player)
       if draw = draw?
         print_board_and_message draw
@@ -150,10 +175,10 @@ Type 'u' to undo your last move (up to 3 turns)
           next
         end
         if xy_origin.downcase == "u"
-          board.undo_last_move
+          undo_last_move
           board.display_board
           sleep(1)
-          board.undo_last_move
+          undo_last_move
           next
         end
         if xy_origin == "88"
@@ -178,23 +203,23 @@ Type 'u' to undo your last move (up to 3 turns)
         piece = board.squares[coord_from[0]][coord_from[1]]
         board.find_possible_moves(piece, coord_from[0], coord_from[1])
         board.display_board
-        puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n\n"
+        puts "\n\nChoose the coordinates of the place to move the piece to (xy)\n"
         xy_dest = player.computer_player ? comp_move[1] : get_xy 
         coord_to = xy_dest.split String.new
         coord_to = [coord_to[0].to_i, coord_to[1].to_i]
         if piece.possible_moves.include? [coord_to[0], coord_to[1]]
-          board.insert_move_in_undo_list   
+          saved_position = insert_move_in_undo_list
           piece_at_dest = board.make_move coord_from, coord_to    
           if board.in_check? player
             board.last_selected_piece = nil
             print_board_and_message "You can't make that move. You'll be in check."
             board.make_move coord_to, coord_from, piece_at_dest
-            board.undo_last_move(false)
+            undo_last_move(saved_position, false)
             next
           end
           board.squares[coord_to[0]][coord_to[1]].moved ||= true
           board.last_selected_piece = coord_to
-          game_positions[board.squares] += 1
+          game_positions[board.get_board_signature] += 1
           # if a piece has been taken or if a pawn was moved - reset fifty_moves_counter and clear game_positions else increment fifty_moves_counter
           (piece_at_dest || piece.class == Pawn) ? reset_counters : @fifty_moves_counter += 1
           board.clear_enpassant player #revoke the possibility of making en passant moves

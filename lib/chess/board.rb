@@ -4,33 +4,12 @@ module Chess
     def initialize
       @squares = Array.new(8) { Array.new(8) }
       @last_selected_piece = nil
-      @recent_moves = Array.new(7)
-      @recent_moves[0] = :head
     end
 
     def squares_iterator
       (0..7).each do |x|
         (0..7).each {|y| yield x, y}
       end
-    end
-
-    def insert_move_in_undo_list
-      i_head = recent_moves.index(:head)
-      new_index_head = i_head == recent_moves.size - 1 ? 0 : i_head + 1
-      recent_moves[i_head] = @squares.to_yaml
-      recent_moves[new_index_head] = :head
-    end
-
-    def undo_last_move(load_squares = true)
-      i_head = recent_moves.index(:head)
-      new_index_head = i_head == 0 ? recent_moves.size - 1 : i_head - 1
-      if load_squares
-        last_move = recent_moves[new_index_head]
-        return if last_move.nil?
-        @squares = YAML.load(last_move)
-      end
-      recent_moves[i_head] = nil
-      recent_moves[new_index_head] = :head
     end
 
     def create_pieces
@@ -52,6 +31,10 @@ module Chess
       @squares[3][7] = Queen.new(WHITE)
       @squares[4][0] = King.new(BLACK)
       @squares[4][7] = King.new(WHITE)
+    end
+
+    def get_board_signature
+       @squares.flatten.each_with_index.inject("") { |res, (piece, index)| res += piece.nil? ? "" : get_piece_code(piece) + index.to_s }
     end
 
     def line_moves(origin_x, origin_y, inc_x, inc_y, start_square, direction)
