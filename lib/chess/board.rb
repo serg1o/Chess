@@ -1,6 +1,6 @@
 module Chess
   class Board
-    attr_accessor :squares, :last_selected_piece, :recent_moves
+    attr_accessor :squares, :last_selected_piece
     def initialize
       @squares = Array.new(8) { Array.new(8) }
       @last_selected_piece = nil

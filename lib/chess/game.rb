@@ -32,11 +32,10 @@ module Chess
       id_load = gets.chomp
       if File.exists? "saved_games/game#{id_load}.txt"
         values = YAML::load File.open("saved_games/game#{id_load}.txt", "r").readlines.join
-        self.board = values[0].board
-        self.player1 = values[0].player1
-        self.player2 = values[0].player2
-        self.game_file = values[0].game_file
-        self.next_to_play = values[0].next_to_play
+        self.board, self.player1, self.player2 = values[0].board, values[0].player1, values[0].player2
+        self.game_file, self.next_to_play, self.game_positions = values[0].game_file, values[0].next_to_play, values[0].game_positions
+        self.fifty_moves_counter, self.recent_moves = values[0].fifty_moves_counter, values[0].recent_moves
+        game_positions.default = 0
         return true
       end
       puts "File game#{id_load}.txt does not exist"
@@ -106,7 +105,7 @@ module Chess
     def get_xy
       loop do
         xy = gets.chomp
-        return xy if ((xy.length == 2) && (xy.match (/[0-7][0-7]|88|99/))) || ((xy.length == 1) && (xy.match (/s|S|q|Q|u|U/)))
+        return xy.downcase if ((xy.length == 2) && (xy.match (/[0-7][0-7]|88|99/))) || ((xy.length == 1) && (xy.match (/s|S|q|Q|u|U/)))
         board.display_board
         puts "\n\nInvalid input. Try again.\n\n\n"
       end
@@ -141,6 +140,7 @@ module Chess
         return if last_move.nil?
         board.squares = YAML.load(last_move[0])
         @game_positions = last_move[1]
+        @game_positions.default = 0
         @fifty_moves_counter = last_move[2]
       end
       recent_moves[i_head] = saved_move
@@ -169,26 +169,26 @@ Type 'u' to undo your last move (up to 3 turns)
         else
           xy_origin = get_xy
         end
-        return true if xy_origin.downcase == "q"
-        if xy_origin.downcase == "s"
-          save_game
-          next
-        end
-        if xy_origin.downcase == "u"
-          undo_last_move
-          board.display_board
-          sleep(1)
-          undo_last_move
-          next
-        end
-        if xy_origin == "88"
-          break if board.encastle_left player
-          print_board_and_message "It is not possible to encastle with the queen's rook."
-          next
-        elsif xy_origin == "99"
-          break if board.encastle_right player
-          print_board_and_message "It is not possible to encastle with the king's rook."
-          next
+        case xy_origin
+          when "q" then return true
+          when "s" then
+            save_game
+            next
+          when "u" then
+            undo_last_move
+            board.display_board
+            puts "\nReverting moves...\n\n"
+            sleep(1)
+            undo_last_move
+            next
+          when "88" then
+            break if board.encastle_left player
+            print_board_and_message "It is not possible to encastle with the queen's rook."
+            next
+          when "99" then
+            break if board.encastle_right player
+            print_board_and_message "It is not possible to encastle with the king's rook."
+            next
         end
         coord_from = xy_origin.split String.new
         coord_from = [coord_from[0].to_i, coord_from[1].to_i]
@@ -228,7 +228,7 @@ Type 'u' to undo your last move (up to 3 turns)
           board.update_pawn_hypo_moves piece, coord_to, coord_from[1]
           if board.in_check? opponent
             if board.in_check_mate? opponent
-              print_board_and_message "Checkmate! #{player.color} player has won the game."
+              print_board_and_message "Checkmate! #{player.order_player} (#{player.color}) has won the game."
               return true
             end
             print_message "#{opponent.color} king is in check!"
