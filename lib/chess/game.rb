@@ -147,6 +147,16 @@ module Chess
       recent_moves[new_index_head] = :head
     end
 
+    def undo_last_turn
+      if recent_moves.compact.length > 2
+        undo_last_move
+        board.display_board
+        puts "\nReverting moves...\n\n"
+        sleep(1)
+        undo_last_move
+      end
+    end
+
     def player_turn(player)
       if draw = draw?
         print_board_and_message draw
@@ -175,18 +185,22 @@ Type 'u' to undo your last move (up to 3 turns)
             save_game
             next
           when "u" then
-            undo_last_move
-            board.display_board
-            puts "\nReverting moves...\n\n"
-            sleep(1)
-            undo_last_move
+            undo_last_turn
             next
           when "88" then
-            break if board.encastle_left player
+            if board.can_encastle_left? player
+              insert_move_in_undo_list
+              board.encastle_left player
+              break
+            end
             print_board_and_message "It is not possible to encastle with the queen's rook."
             next
           when "99" then
-            break if board.encastle_right player
+            if board.can_encastle_right? player
+              insert_move_in_undo_list
+              board.encastle_right player
+              break
+            end
             print_board_and_message "It is not possible to encastle with the king's rook."
             next
         end

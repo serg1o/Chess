@@ -149,21 +149,33 @@ module Chess
       true
     end
 
-    def encastle_left(player) #encastle with the queen's rook
+    def can_encastle_left?(player)
       line = player.color == WHITE ? 7 : 0
       return false if squares[0][line].nil? || squares[0][line].moved || squares[4][line].nil? || squares[4][line].moved ||
                       squares[1][line] || squares[2][line] || squares[3][line] #return false if there's any piece between king and rook
       [[2, line],[3, line],[4, line]].each { |pos| return false if in_check? player, pos }
+      line
+    end
+
+    def encastle_left(player) #encastle with the queen's rook
+      line = can_encastle_left?(player)
+      return false unless line
       make_move [4, line], [2, line]  #move king
       make_move [0, line], [3, line]  #move rook
       true
     end
 
-    def encastle_right(player) #encastle with the king's rook
+    def can_encastle_right?(player)
       line = player.color == WHITE ? 7 : 0
       return false if squares[7][line].nil? || squares[7][line].moved || squares[4][line].nil? || squares[4][line].moved ||
                       squares[5][line] || squares[6][line] #return false if there's any piece between king and rook
       [[4, line],[5, line],[6, line]].each { |pos| return false if in_check?(player, pos) }
+      line
+    end
+
+    def encastle_right(player) #encastle with the king's rook
+      line = can_encastle_right?(player)
+      return false unless line
       make_move [4, line], [6, line]  #move king
       make_move [7, line], [5, line]  #move rook
       true
