@@ -17,6 +17,7 @@ module Chess
     h_line: "\u2500"
   }
   SCORES = { "Queen" => 9, "Rook" => 5, "Bishop" => 3, "Knight" => 3, "Pawn" => 1 }
-  files = %w[player piece rook pawn king queen bishop knight board game]
-  files.each { |file| require_relative "../lib/chess/" + file + ".rb" }
+  library = %i[ Player Piece Rook Pawn King Queen Bishop Knight Board Game  ]
+  library.each {  |class| autoload class, "chess/#{class.to_s.downcase}"  }
+
 end
